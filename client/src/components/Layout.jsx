@@ -1,11 +1,17 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthContext } from '../utils/AuthContext'
+import { EditDisplayNameModal } from './EditDisplayNameModal'
+import { EditEmailModal } from './EditEmailModal'
+import { ChangePasswordModal } from './ChangePasswordModal'
 
 export function Layout({ children, currentSection, onSectionChange }) {
   const { user, profile, signOut } = useAuthContext()
   const navigate = useNavigate()
   const [showOverflowMenu, setShowOverflowMenu] = useState(false)
+  const [showDisplayNameModal, setShowDisplayNameModal] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
 
   const handleSignOut = async () => {
     await signOut()
@@ -96,8 +102,46 @@ export function Layout({ children, currentSection, onSectionChange }) {
                         <span>{section.label}</span>
                       </button>
                     ))}
+                    
+                    <div className="border-t border-gray-200 my-2"></div>
+                    
+                    <button 
+                      onClick={() => {
+                        setShowDisplayNameModal(true)
+                        setShowOverflowMenu(false)
+                      }} 
+                      className="overflow-menu-item"
+                    >
+                      <span className="material-symbols-rounded">badge</span>
+                      <span>Edit Display Name...</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => {
+                        setShowEmailModal(true)
+                        setShowOverflowMenu(false)
+                      }} 
+                      className="overflow-menu-item"
+                    >
+                      <span className="material-symbols-rounded">alternate_email</span>
+                      <span>Edit Email Address...</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => {
+                        setShowPasswordModal(true)
+                        setShowOverflowMenu(false)
+                      }} 
+                      className="overflow-menu-item"
+                    >
+                      <span className="material-symbols-rounded">lock</span>
+                      <span>Change Password...</span>
+                    </button>
+                    
+                    <div className="border-t border-gray-200 my-2"></div>
+                    
                     <button onClick={handleSignOut} className="overflow-menu-item">
-                      <span className="material-symbols-rounded" style={{ fontVariationSettings: "'FILL' 1" }}>account_circle</span>
+                      <span className="material-symbols-rounded">logout</span>
                       <span>Sign Out</span>
                     </button>
                   </div>
@@ -113,6 +157,20 @@ export function Layout({ children, currentSection, onSectionChange }) {
       <main className="pt-24 sm:pt-48 px-4 pb-12 max-w-7xl mx-auto">
         {children}
       </main>
+
+      {/* Modals */}
+      <EditDisplayNameModal 
+        isOpen={showDisplayNameModal} 
+        onClose={() => setShowDisplayNameModal(false)} 
+      />
+      <EditEmailModal 
+        isOpen={showEmailModal} 
+        onClose={() => setShowEmailModal(false)} 
+      />
+      <ChangePasswordModal 
+        isOpen={showPasswordModal} 
+        onClose={() => setShowPasswordModal(false)} 
+      />
     </div>
   )
 }

@@ -2,11 +2,53 @@
 
 This guide covers deploying the Dibs app to production.
 
+> **⚠️ Critical**: This guide is for deploying to PRODUCTION. You must use **production Supabase credentials**, NOT your development credentials. See [ENVIRONMENT_GUIDE.md](ENVIRONMENT_GUIDE.md) for details on environment separation.
+
 ## Prerequisites
 
-- Supabase project set up (see SETUP_GUIDE.md)
+- **Production** Supabase project set up (separate from development)
 - GitHub repository with your code
 - Vercel or Netlify account (free tier works)
+
+> **Environment Setup**: If you followed [SETUP_GUIDE.md](SETUP_GUIDE.md), that created a development environment. Before deploying to production, you need to create a separate production Supabase project with real user accounts. See the "Production Setup" section below.
+
+## Production Supabase Setup
+
+Before deploying, create your production Supabase project:
+
+### 1. Create Production Project
+
+1. Go to [supabase.com](https://supabase.com)
+2. Create a **new project** (separate from your dev project)
+3. Name it: "dibs-app" or similar (NOT "dibs-dev")
+4. Use a strong, unique database password
+5. Choose a region close to your users
+
+### 2. Set Up Production Database
+
+1. Go to **SQL Editor** in Supabase dashboard
+2. Run `supabase-schema.sql` (same as dev setup)
+3. Create `item-images` storage bucket (public)
+4. Set up 4 storage policies (SELECT public, INSERT/UPDATE/DELETE authenticated)
+
+### 3. Create Real Users
+
+Create accounts for your actual family members:
+- Use their real email addresses
+- Use secure passwords
+- Add full_name in user metadata
+
+### 4. Save Production Credentials
+
+1. Go to **Project Settings** → **API**
+2. Copy:
+   - **Project URL** (your production URL)
+   - **anon public key** (your production key)
+3. Save these securely - you'll add them to Vercel/Netlify
+
+> **Important**: Keep production credentials secure. Never commit them to git or share them publicly.
+
+---
 
 ## Option 1: Deploy to Vercel (Recommended)
 
@@ -42,8 +84,10 @@ Vercel offers the best integration with Vite and is very simple to set up.
    
    | Name | Value |
    |------|-------|
-   | `VITE_SUPABASE_URL` | Your Supabase project URL |
-   | `VITE_SUPABASE_ANON_KEY` | Your Supabase anon key |
+   | `VITE_SUPABASE_URL` | Your **PRODUCTION** Supabase project URL |
+   | `VITE_SUPABASE_ANON_KEY` | Your **PRODUCTION** Supabase anon key |
+   
+   > **⚠️ Critical Warning**: Use your PRODUCTION Supabase credentials here, NOT your development credentials. Double-check the URL matches your production project.
 
 5. **Deploy**
    - Click **Deploy**
@@ -83,8 +127,10 @@ Netlify is another excellent free hosting option.
    
    | Key | Value |
    |-----|-------|
-   | `VITE_SUPABASE_URL` | Your Supabase project URL |
-   | `VITE_SUPABASE_ANON_KEY` | Your Supabase anon key |
+   | `VITE_SUPABASE_URL` | Your **PRODUCTION** Supabase project URL |
+   | `VITE_SUPABASE_ANON_KEY` | Your **PRODUCTION** Supabase anon key |
+   
+   > **⚠️ Critical Warning**: Use your PRODUCTION Supabase credentials here, NOT your development credentials. Double-check the URL matches your production project.
 
 5. **Deploy**
    - Click **Deploy site**
@@ -258,9 +304,11 @@ Upgrade Vercel/Netlify when:
 ### Runtime Errors
 
 **Error**: "Failed to fetch"
-- Check Supabase URL and key are correct
-- Verify CORS settings in Supabase
+- Verify you're using **production** Supabase credentials in deployment
+- Check Supabase URL and key are correct in Vercel/Netlify
+- Verify CORS settings in production Supabase project
 - Check browser console for specific error
+- Make sure production project URL matches deployed app
 
 **Error**: Images not loading
 - Verify storage bucket is public
@@ -270,9 +318,10 @@ Upgrade Vercel/Netlify when:
 ### Authentication Issues
 
 **Error**: "Invalid login credentials"
-- Verify users exist in Supabase
+- Verify users exist in **production** Supabase project (not dev)
+- Make sure you created real user accounts in production
 - Check email confirmation status
-- Verify redirect URLs are set
+- Verify redirect URLs include your deployed domain
 
 ## Backup Strategy
 
@@ -314,24 +363,42 @@ backup()
 
 ## Security Checklist
 
+- ✅ Using **production** Supabase credentials (not dev)
 - ✅ Environment variables not in git
 - ✅ HTTPS enabled (automatic)
-- ✅ Row Level Security enabled
+- ✅ Row Level Security enabled in Supabase
 - ✅ API keys are anon keys (not service keys)
-- ✅ Storage policies configured
-- ✅ Auth redirect URLs whitelisted
+- ✅ Storage policies configured correctly
+- ✅ Auth redirect URLs whitelisted in Supabase
 - ✅ CORS properly configured
+- ✅ Production database separate from development
+- ✅ Strong passwords for production users
 
-## Production Environment Variables
+## Environment Variables Reference
 
-Create a `.env.production` file (don't commit!) for reference:
+### Local Reference File (Optional)
 
-```
-VITE_SUPABASE_URL=your_production_url
+You can create `client/.env.production.local` (gitignored) for your records:
+
+```env
+# PRODUCTION CREDENTIALS - DO NOT USE FOR LOCAL DEV
+# These are configured in Vercel/Netlify dashboard
+VITE_SUPABASE_URL=https://your-prod-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your_production_anon_key
 ```
 
-Use different Supabase projects for staging/production if needed.
+> **Note**: This file is just for your reference. The actual production deployment uses credentials from Vercel/Netlify dashboard, NOT from any local file.
+
+### Environment Separation
+
+| Environment | Credentials Location | Used When |
+|-------------|---------------------|-----------|
+| **Development** | `client/.env.local` | Running `npm run dev` locally |
+| **Production** | Vercel/Netlify dashboard | Deployed app in production |
+
+**Never** commit either `.env` file to git. Both are gitignored for security.
+
+For complete details on managing environments, see [ENVIRONMENT_GUIDE.md](ENVIRONMENT_GUIDE.md).
 
 ## Monitoring and Alerts
 

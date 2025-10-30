@@ -2,16 +2,22 @@
 
 This guide will help you get the Dibs app running in under 10 minutes.
 
+> **⚠️ Important**: This guide sets up a **DEVELOPMENT** environment for local development and testing. For production deployment, you should create a separate Supabase project. See [ENVIRONMENT_GUIDE.md](ENVIRONMENT_GUIDE.md) for details on managing dev and production environments.
+
 ## Step 1: Create Supabase Project (2 minutes)
+
+**This creates your DEVELOPMENT project:**
 
 1. Go to [supabase.com](https://supabase.com) and sign up/login
 2. Click **New Project**
 3. Fill in:
-   - **Name**: dibs-app (or your choice)
+   - **Name**: dibs-dev (or similar - make it clear it's for development)
    - **Database Password**: (save this somewhere safe)
    - **Region**: Choose closest to you
 4. Click **Create new project**
 5. Wait ~2 minutes for project to initialize
+
+> **Note**: When you're ready for production, create a separate project named "dibs-app" or similar. See [ENVIRONMENT_GUIDE.md](ENVIRONMENT_GUIDE.md).
 
 ## Step 2: Get API Keys (1 minute)
 
@@ -123,14 +129,16 @@ Names for metadata:
 1. Open the project in your code editor
 2. Navigate to the `client` folder
 3. Create a file named `.env.local` (if it doesn't exist)
-4. Add your Supabase credentials:
+4. Add your **development** Supabase credentials:
 
 ```
 VITE_SUPABASE_URL=https://xxxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key_here
+VITE_SUPABASE_ANON_KEY=your_dev_anon_key_here
 ```
 
-Replace with the values you copied in Step 2.
+Replace with the values you copied in Step 2 from your **dev** Supabase project.
+
+> **Important**: This `.env.local` file contains your development credentials. It's gitignored, so it stays local. Production credentials go in your deployment platform (Vercel/Netlify). See [ENVIRONMENT_GUIDE.md](ENVIRONMENT_GUIDE.md) for details.
 
 ## Step 7: Install and Run (1 minute)
 
@@ -183,10 +191,27 @@ You can now:
 
 ## Next Steps
 
-- Invite family members to create accounts
-- Start uploading estate items
-- Have everyone mark their preferences
-- Use the Conflicts view to resolve items multiple people want
+### For Development
+
+- You now have a fully functional **development environment**
+- Test users are: alice@example.com through henry@example.com (all use password: password123)
+- You can freely test all features without affecting production data
+- Make code changes and test locally with confidence
+
+### For Production Deployment
+
+When you're ready to deploy for real use:
+
+1. **Create production Supabase project** - Follow Step 1-5 again with a production project name
+2. **Create real user accounts** - For your actual family members with real emails
+3. **Deploy to Vercel/Netlify** - Follow [DEPLOYMENT.md](DEPLOYMENT.md)
+4. **Use production credentials** - Add production Supabase credentials to your deployment platform
+
+### Learn More
+
+- [ENVIRONMENT_GUIDE.md](ENVIRONMENT_GUIDE.md) - Complete guide to managing dev and production
+- [DEPLOYMENT.md](DEPLOYMENT.md) - How to deploy to production
+- [README.md](README.md) - Full documentation
 
 Enjoy using Dibs! 📦✨
 

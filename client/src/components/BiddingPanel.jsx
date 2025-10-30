@@ -92,6 +92,8 @@ export function BiddingPanel({ item, userClaim, userPoints, onBidUpdate }) {
             <div className="flex-1">
               <input
                 type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={bidAmount}
                 onChange={handleBidChange}
                 className="bid-input"

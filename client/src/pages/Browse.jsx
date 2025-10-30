@@ -4,11 +4,13 @@ import { useAuthContext } from '../utils/AuthContext'
 import { ItemCard } from '../components/ItemCard'
 import { UploadModal } from '../components/UploadModal'
 import { useExpirationChecker } from '../hooks/useExpirationChecker'
+import { calculateAvailablePoints } from '../utils/pointsCalculation'
 
 export function Browse({ currentSection = 'browse' }) {
   const { user } = useAuthContext()
   const [items, setItems] = useState([])
   const [userClaims, setUserClaims] = useState({})
+  const [userClaimsArray, setUserClaimsArray] = useState([])
   const [profiles, setProfiles] = useState([])
   const [userPoints, setUserPoints] = useState(100)
   const [loading, setLoading] = useState(true)
@@ -119,6 +121,7 @@ export function Browse({ currentSection = 'browse' }) {
         claimsMap[claim.item_id] = claim
       })
       setUserClaims(claimsMap)
+      setUserClaimsArray(claimsData || [])
     } catch (error) {
       console.error('Error loading data:', error.message || JSON.stringify(error))
     } finally {
@@ -264,18 +267,23 @@ export function Browse({ currentSection = 'browse' }) {
         </div>
       ) : (
         <div className={currentSection === 'donation' ? 'grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4' : 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4'}>
-          {filteredItems.map(item => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              userClaim={userClaims[item.id]}
-              onClaimUpdate={optimisticClaimUpdate}
-              onDataReload={() => loadData(false)}
-              profiles={profiles}
-              userPoints={userPoints}
-              currentSection={currentSection}
-            />
-          ))}
+          {filteredItems.map(item => {
+            // Calculate available points for this specific item
+            const availablePoints = calculateAvailablePoints(userPoints, userClaimsArray, items, item.id)
+            
+            return (
+              <ItemCard
+                key={item.id}
+                item={item}
+                userClaim={userClaims[item.id]}
+                onClaimUpdate={optimisticClaimUpdate}
+                onDataReload={() => loadData(false)}
+                profiles={profiles}
+                userPoints={availablePoints}
+                currentSection={currentSection}
+              />
+            )
+          })}
         </div>
       )}
     </div>

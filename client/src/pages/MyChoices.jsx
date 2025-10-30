@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../api/supabase'
 import { useAuthContext } from '../utils/AuthContext'
 import { ItemCard } from '../components/ItemCard'
+import { calculateAvailablePoints } from '../utils/pointsCalculation'
 
 export function MyChoices() {
   const { user } = useAuthContext()
   const [items, setItems] = useState([])
   const [userClaims, setUserClaims] = useState({})
+  const [userClaimsArray, setUserClaimsArray] = useState([])
   const [profiles, setProfiles] = useState([])
   const [userPoints, setUserPoints] = useState(100)
   const [loading, setLoading] = useState(true)
@@ -57,6 +59,7 @@ export function MyChoices() {
 
       setItems(itemsArray)
       setUserClaims(claimsMap)
+      setUserClaimsArray(claimsData || [])
     } catch (error) {
       console.error('Error loading choices:', error)
     } finally {
@@ -119,17 +122,22 @@ export function MyChoices() {
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {interestedItems.map(item => (
-                    <ItemCard
-                      key={item.id}
-                      item={item}
-                      userClaim={userClaims[item.id]}
-                      onClaimUpdate={loadData}
-                      onDataReload={loadData}
-                      profiles={profiles}
-                      userPoints={userPoints}
-                    />
-                  ))}
+                  {interestedItems.map(item => {
+                    // Calculate available points for this specific item
+                    const availablePoints = calculateAvailablePoints(userPoints, userClaimsArray, items, item.id)
+                    
+                    return (
+                      <ItemCard
+                        key={item.id}
+                        item={item}
+                        userClaim={userClaims[item.id]}
+                        onClaimUpdate={loadData}
+                        onDataReload={loadData}
+                        profiles={profiles}
+                        userPoints={availablePoints}
+                      />
+                    )
+                  })}
                 </div>
 
                 {/* Conflict Warning */}
@@ -170,17 +178,22 @@ export function MyChoices() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {declinedItems.map(item => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    userClaim={userClaims[item.id]}
-                    onClaimUpdate={loadData}
-                    onDataReload={loadData}
-                    profiles={profiles}
-                    userPoints={userPoints}
-                  />
-                ))}
+                {declinedItems.map(item => {
+                  // Calculate available points for this specific item
+                  const availablePoints = calculateAvailablePoints(userPoints, userClaimsArray, items, item.id)
+                  
+                  return (
+                    <ItemCard
+                      key={item.id}
+                      item={item}
+                      userClaim={userClaims[item.id]}
+                      onClaimUpdate={loadData}
+                      onDataReload={loadData}
+                      profiles={profiles}
+                      userPoints={availablePoints}
+                    />
+                  )
+                })}
               </div>
             )}
           </div>

@@ -5,7 +5,7 @@ import { useAuthContext } from '../utils/AuthContext'
 export function Layout({ children, currentSection, onSectionChange }) {
   const { user, profile, signOut } = useAuthContext()
   const navigate = useNavigate()
-  const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showOverflowMenu, setShowOverflowMenu] = useState(false)
 
   const handleSignOut = async () => {
     await signOut()
@@ -18,11 +18,18 @@ export function Layout({ children, currentSection, onSectionChange }) {
     return 'User'
   }
 
-  const navSections = [
-    { id: 'browse', label: 'Browse', icon: 'grid_view' },
-    { id: 'dibbed', label: 'Dibbed', icon: 'favorite' },
-    { id: 'passed', label: 'Passed', icon: 'delete' },
-    { id: 'conflicts', label: 'Conflicts', icon: 'warning' },
+  // Main nav items displayed in the navigation bar
+  const mainNavSections = [
+    { id: 'browse', label: 'All Items', icon: 'grid_view' },
+    { id: 'dibbed', label: 'My Dibs', icon: 'favorite' },
+    { id: 'passed', label: 'My Passes', icon: 'delete' },
+    { id: 'conflicts', label: 'My Bids', icon: 'loyalty' },
+  ]
+
+  // Overflow items shown in dropdown menu
+  const overflowSections = [
+    { id: 'mystuff', label: 'My Stuff', icon: 'inventory_2' },
+    { id: 'donation', label: 'Donation Pile', icon: 'move_item' },
   ]
 
 
@@ -42,7 +49,7 @@ export function Layout({ children, currentSection, onSectionChange }) {
 
           {/* Navigation Items */}
           <div className="nav-items">
-            {navSections.map((section) => (
+            {mainNavSections.map((section) => (
               <button
                 key={section.id}
                 onClick={() => onSectionChange?.(section.id)}
@@ -54,30 +61,43 @@ export function Layout({ children, currentSection, onSectionChange }) {
                 <span className="nav-label">{section.label}</span>
               </button>
             ))}
-          </div>
-
-          {/* Right Section */}
-          <div className="nav-right">
-            {/* User Menu */}
-            <div className="user-menu-container">
+            
+            {/* Overflow Menu */}
+            <div className="overflow-menu-container">
               <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="user-btn"
+                onClick={() => setShowOverflowMenu(!showOverflowMenu)}
+                className="nav-item overflow-btn"
               >
-                <span className="material-symbols-rounded nav-icon">account_circle</span>
-                <span className="nav-label">{getUserFirstName()}</span>
+                <span className="material-symbols-rounded nav-icon">
+                  more_horiz
+                </span>
               </button>
 
               {/* Dropdown Menu */}
-              {showUserMenu && (
+              {showOverflowMenu && (
                 <>
                   <div
                     className="user-menu-overlay"
-                    onClick={() => setShowUserMenu(false)}
+                    onClick={() => setShowOverflowMenu(false)}
                   />
                   <div className="user-menu-dropdown">
-                    <button onClick={handleSignOut} className="sign-out-btn">
-                      <span className="material-symbols-rounded text-lg">logout</span>
+                    {overflowSections.map((section) => (
+                      <button
+                        key={section.id}
+                        onClick={() => {
+                          onSectionChange?.(section.id)
+                          setShowOverflowMenu(false)
+                        }}
+                        className="overflow-menu-item"
+                      >
+                        <span className="material-symbols-rounded">
+                          {section.icon}
+                        </span>
+                        <span>{section.label}</span>
+                      </button>
+                    ))}
+                    <button onClick={handleSignOut} className="overflow-menu-item">
+                      <span className="material-symbols-rounded" style={{ fontVariationSettings: "'FILL' 1" }}>account_circle</span>
                       <span>Sign Out</span>
                     </button>
                   </div>
@@ -85,6 +105,7 @@ export function Layout({ children, currentSection, onSectionChange }) {
               )}
             </div>
           </div>
+
         </nav>
       </div>
 

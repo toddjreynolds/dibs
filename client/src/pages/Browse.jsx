@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '../api/supabase'
 import { useAuthContext } from '../utils/AuthContext'
 import { ItemCard } from '../components/ItemCard'
+import { UploadModal } from '../components/UploadModal'
 import { useExpirationChecker } from '../hooks/useExpirationChecker'
 
 export function Browse({ currentSection = 'browse' }) {
   const { user } = useAuthContext()
-  const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [userClaims, setUserClaims] = useState({})
   const [profiles, setProfiles] = useState([])
   const [userPoints, setUserPoints] = useState(100)
   const [loading, setLoading] = useState(true)
+  const [showUploadModal, setShowUploadModal] = useState(false)
   
   // Check for expired items periodically
   useExpirationChecker()
@@ -81,12 +81,23 @@ export function Browse({ currentSection = 'browse' }) {
 
       if (itemsError) throw itemsError
 
-      // Process items - filter by status if column exists, otherwise show all
+      // Process items - only filter active items at the top level
+      // All sections except 'mystuff' should only see active items
+      // 'mystuff' needs to see awarded items
       let filteredItemsData = itemsData || []
-      
-      // Only filter by status='active' if in browse section AND status column exists
-      if (currentSection === 'browse' && itemsData.length > 0 && 'status' in itemsData[0]) {
-        filteredItemsData = itemsData.filter(item => item.status === 'active')
+
+      // Filter by status based on current section
+      if (itemsData.length > 0 && 'status' in itemsData[0]) {
+        if (currentSection === 'mystuff') {
+          // Only show resolved items won by the user
+          filteredItemsData = itemsData.filter(item => item.status === 'resolved' && item.winner_id === user.id)
+        } else if (currentSection === 'donation') {
+          // Only show donated items
+          filteredItemsData = itemsData.filter(item => item.status === 'donated')
+        } else {
+          // All other sections should only see active items
+          filteredItemsData = itemsData.filter(item => item.status === 'active')
+        }
       }
 
       const processedItems = filteredItemsData.map(item => ({
@@ -161,6 +172,12 @@ export function Browse({ currentSection = 'browse' }) {
           const hasConflict = item.interested_count > 1
           return userDibbed && hasConflict
         })
+      case 'mystuff':
+        // Items are already filtered to resolved items won by user
+        return items
+      case 'donation':
+        // Items are already filtered to donated items
+        return items
       default:
         return items
     }
@@ -176,6 +193,10 @@ export function Browse({ currentSection = 'browse' }) {
         return 'Items I\'ve Passed'
       case 'conflicts':
         return 'My Conflicts'
+      case 'mystuff':
+        return 'My Stuff'
+      case 'donation':
+        return 'Donate/Sell'
       default:
         return 'All Items'
     }
@@ -189,6 +210,10 @@ export function Browse({ currentSection = 'browse' }) {
         return 'You haven\'t passed on any items yet'
       case 'conflicts':
         return 'No conflicts! All items you want are available.'
+      case 'mystuff':
+        return 'No items awarded to you yet'
+      case 'donation':
+        return 'No items available to donate or sell'
       default:
         return 'No items yet. Upload the first one!'
     }
@@ -197,12 +222,19 @@ export function Browse({ currentSection = 'browse' }) {
   return (
     <div>
       {/* Floating Action Button */}
-      <button onClick={() => navigate('/upload')} className="fab">
+      <button onClick={() => setShowUploadModal(true)} className="fab">
         <svg className="fab-icon" width="22" height="16" viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M5.5 16C3.98333 16 2.6875 15.475 1.6125 14.425C0.5375 13.375 0 12.0917 0 10.575C0 9.275 0.391667 8.11667 1.175 7.1C1.95833 6.08333 2.98333 5.43333 4.25 5.15C4.66667 3.61667 5.5 2.375 6.75 1.425C8 0.475 9.41667 0 11 0C12.95 0 14.6042 0.679167 15.9625 2.0375C17.3208 3.39583 18 5.05 18 7C19.15 7.13333 20.1042 7.62917 20.8625 8.4875C21.6208 9.34583 22 10.35 22 11.5C22 12.75 21.5625 13.8125 20.6875 14.6875C19.8125 15.5625 18.75 16 17.5 16H12V8.85L12.9 9.725C13.0833 9.90833 13.3125 10 13.5875 10C13.8625 10 14.1 9.9 14.3 9.7C14.4833 9.51667 14.575 9.28333 14.575 9C14.575 8.71667 14.4833 8.48333 14.3 8.3L11.7 5.7C11.5 5.5 11.2667 5.4 11 5.4C10.7333 5.4 10.5 5.5 10.3 5.7L7.7 8.3C7.51667 8.48333 7.42083 8.7125 7.4125 8.9875C7.40417 9.2625 7.5 9.5 7.7 9.7C7.88333 9.88333 8.1125 9.97917 8.3875 9.9875C8.6625 9.99583 8.9 9.90833 9.1 9.725L10 8.85V16H5.5Z" fill="white"/>
         </svg>
         <span className="fab-label">Upload</span>
       </button>
+
+      {/* Upload Modal */}
+      <UploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onUploadComplete={() => loadData(false)}
+      />
 
       {loading ? (
         <div className="text-center py-12">
@@ -217,7 +249,7 @@ export function Browse({ currentSection = 'browse' }) {
           <p className="text-gray-600 text-lg">{getEmptyMessage()}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={currentSection === 'donation' ? 'grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4' : 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4'}>
           {filteredItems.map(item => (
             <ItemCard
               key={item.id}
@@ -227,6 +259,7 @@ export function Browse({ currentSection = 'browse' }) {
               onDataReload={() => loadData(false)}
               profiles={profiles}
               userPoints={userPoints}
+              currentSection={currentSection}
             />
           ))}
         </div>

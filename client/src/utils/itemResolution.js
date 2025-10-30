@@ -35,16 +35,60 @@ export async function checkAndResolveItem(itemId) {
     // Group interested users by couples
     const interestedGroups = groupInterestedByCouples(interestedClaims, profiles)
 
+    // Get all eligible users (everyone can claim any item, including uploader)
+    const eligibleUserIds = profiles.map(p => p.id)
+
+    // Get all user IDs that have acted
+    const actedUserIds = new Set([
+      ...interestedClaims.map(c => c.user_id),
+      ...declinedClaims.map(c => c.user_id)
+    ])
+
+    // Group eligible users by couples to count total groups
+    const eligibleCoupleIds = new Set()
+    const eligibleSingleUserIds = new Set()
+    
+    eligibleUserIds.forEach(userId => {
+      const user = profiles.find(p => p.id === userId)
+      if (user?.couple_id) {
+        eligibleCoupleIds.add(user.couple_id)
+      } else {
+        eligibleSingleUserIds.add(userId)
+      }
+    })
+
+    // Count how many eligible groups have acted
+    let actedGroups = 0
+    let totalEligibleGroups = eligibleSingleUserIds.size
+
+    // Count couple groups that have acted
+    eligibleCoupleIds.forEach(coupleId => {
+      const coupleUsers = profiles.filter(p => p.couple_id === coupleId)
+      totalEligibleGroups++
+      if (coupleUsers.some(u => actedUserIds.has(u.id))) {
+        actedGroups++
+      }
+    })
+
+    // Count single users that have acted
+    eligibleSingleUserIds.forEach(userId => {
+      if (actedUserIds.has(userId)) {
+        actedGroups++
+      }
+    })
+
+    const allEligibleUsersActed = actedGroups === totalEligibleGroups
+
     // Resolution logic
     let resolution = null
 
-    // Case 1: All users passed → immediate donation
-    if (interestedClaims.length === 0 && declinedClaims.length > 0) {
+    // Rule 3: All eligible users passed → immediate donation
+    if (!resolution && allEligibleUsersActed && interestedClaims.length === 0) {
       resolution = { status: 'donated', winner_id: null }
     }
     
-    // Case 2: Expires with no dibs → donation
-    if (interestedClaims.length === 0 && declinedClaims.length === 0) {
+    // Rule 4: Expires with no dibs → donation
+    if (!resolution && interestedClaims.length === 0 && declinedClaims.length === 0) {
       const now = new Date()
       const expiresAt = new Date(item.expires_at)
       if (now >= expiresAt) {
@@ -52,71 +96,28 @@ export async function checkAndResolveItem(itemId) {
       }
     }
 
-    // Case 3: Solo dibs (one group interested)
-    if (interestedGroups.length === 1) {
-      // Check if all other users have acted (passed)
-      // Get all unique user IDs from the household
-      const allUserIds = profiles.map(p => p.id)
-      const uploaderProfile = profiles.find(p => p.id === item.uploaded_by)
-      
-      // Exclude uploader and their partner from "all users"
-      const eligibleUserIds = allUserIds.filter(userId => {
-        if (userId === item.uploaded_by) return false
-        if (uploaderProfile?.couple_id) {
-          const user = profiles.find(p => p.id === userId)
-          if (user?.couple_id === uploaderProfile.couple_id) return false
-        }
-        return true
-      })
-
-      // Count unique couple groups that have acted
-      const actedUserIds = new Set([
-        ...interestedClaims.map(c => c.user_id),
-        ...declinedClaims.map(c => c.user_id)
-      ])
-
-      // Group all users by couples to count groups that acted
-      const allCoupleIds = new Set()
-      const allSingleUserIds = new Set()
-      
-      eligibleUserIds.forEach(userId => {
-        const user = profiles.find(p => p.id === userId)
-        if (user?.couple_id) {
-          allCoupleIds.add(user.couple_id)
-        } else {
-          allSingleUserIds.add(userId)
-        }
-      })
-
-      // Count how many groups have acted
-      let actedGroups = 0
-      let totalGroups = allSingleUserIds.size
-
-      // Count couple groups that have acted
-      allCoupleIds.forEach(coupleId => {
-        const coupleUsers = profiles.filter(p => p.couple_id === coupleId)
-        totalGroups++
-        if (coupleUsers.some(u => actedUserIds.has(u.id))) {
-          actedGroups++
-        }
-      })
-
-      // Count single users that have acted
-      allSingleUserIds.forEach(userId => {
-        if (actedUserIds.has(userId)) {
-          actedGroups++
-        }
-      })
-
-      // If all groups have acted, resolve immediately
-      if (actedGroups === totalGroups) {
+    // Rule 2 & Rule 1: Solo dibs (one group interested)
+    if (!resolution && interestedGroups.length === 1) {
+      // Rule 2: If all eligible users have acted, resolve immediately
+      if (allEligibleUsersActed) {
         const winnerId = interestedGroups[0].userIds[0] // Use first user ID (couples share wins)
         resolution = { status: 'resolved', winner_id: winnerId }
       }
+      
+      // Rule 1: If item expired with solo dibs (even if not all users acted), award it
+      if (!resolution) {
+        const now = new Date()
+        const expiresAt = new Date(item.expires_at)
+        
+        if (now >= expiresAt) {
+          const winnerId = interestedGroups[0].userIds[0]
+          resolution = { status: 'resolved', winner_id: winnerId }
+        }
+      }
     }
 
-    // Case 4: Conflict at expiration → highest bidder wins
-    if (interestedGroups.length > 1) {
+    // Rule 5 & Rule 6: Conflict at expiration → highest bidder wins
+    if (!resolution && interestedGroups.length > 1) {
       const now = new Date()
       const expiresAt = new Date(item.expires_at)
       

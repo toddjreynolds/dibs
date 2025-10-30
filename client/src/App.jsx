@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuthContext } from './utils/AuthContext'
 import { Login } from './pages/Login'
 import { Browse } from './pages/Browse'
-import { Upload } from './pages/Upload'
 import { Layout } from './components/Layout'
 
 function ProtectedRoute({ children }) {
@@ -62,16 +61,6 @@ function AppRoutes() {
       <Route
         path="/"
         element={<MainApp />}
-      />
-      <Route
-        path="/upload"
-        element={
-          <ProtectedRoute>
-            <Layout currentSection="browse" onSectionChange={() => {}}>
-              <Upload />
-            </Layout>
-          </ProtectedRoute>
-        }
       />
     </Routes>
   )

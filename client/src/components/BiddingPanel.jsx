@@ -3,15 +3,16 @@ import { supabase } from '../api/supabase'
 
 export function BiddingPanel({ item, userClaim, userPoints, onBidUpdate }) {
   const [isEditing, setIsEditing] = useState(false)
-  const [bidAmount, setBidAmount] = useState(userClaim?.bid_amount || 0)
+  const [bidAmount, setBidAmount] = useState(userClaim?.bid_amount || '')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    setBidAmount(userClaim?.bid_amount || 0)
+    setBidAmount(userClaim?.bid_amount || '')
   }, [userClaim?.bid_amount])
 
   const hasBid = userClaim?.bid_amount > 0
-  const availablePoints = userPoints - bidAmount
+  const currentBid = bidAmount === '' ? 0 : parseInt(bidAmount)
+  const availablePoints = userPoints - currentBid
 
   const handleSaveBid = async () => {
     if (saving) return
@@ -20,7 +21,7 @@ export function BiddingPanel({ item, userClaim, userPoints, onBidUpdate }) {
     try {
       const { error } = await supabase
         .from('claims')
-        .update({ bid_amount: bidAmount })
+        .update({ bid_amount: currentBid })
         .eq('id', userClaim.id)
 
       if (error) throw error
@@ -38,14 +39,19 @@ export function BiddingPanel({ item, userClaim, userPoints, onBidUpdate }) {
   }
 
   const handleCancel = () => {
-    setBidAmount(userClaim?.bid_amount || 0)
+    setBidAmount(userClaim?.bid_amount || '')
     setIsEditing(false)
   }
 
   const handleBidChange = (e) => {
-    const value = parseInt(e.target.value) || 0
+    const value = e.target.value
+    if (value === '') {
+      setBidAmount('')
+      return
+    }
+    const numValue = parseInt(value) || 0
     const maxBid = userPoints
-    setBidAmount(Math.min(Math.max(0, value), maxBid))
+    setBidAmount(Math.min(Math.max(0, numValue), maxBid).toString())
   }
 
   // State 1: Initial (no bid placed)
@@ -81,36 +87,38 @@ export function BiddingPanel({ item, userClaim, userPoints, onBidUpdate }) {
           <span className="material-symbols-rounded bidding-icon">loyalty</span>
         </div>
         <div className="bidding-panel bidding-panel-editing">
-          <div className="flex items-center gap-2 mb-4" style={{ justifyContent: 'flex-start' }}>
-            <span className="material-symbols-rounded bidding-panel-icon" style={{ marginBottom: 'auto' }}>loyalty</span>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="material-symbols-rounded bidding-panel-icon">loyalty</span>
             <div className="flex-1">
               <input
                 type="text"
                 value={bidAmount}
                 onChange={handleBidChange}
                 className="bid-input"
-                style={{ height: '22px' }}
+                style={{ height: '22px', borderBottomColor: '#FF006E' }}
                 autoFocus
               />
               <p className="bidding-panel-subtitle" style={{ marginTop: '2px' }}>{userPoints} points available</p>
             </div>
+          </div>
+          <div className="flex items-start gap-2">
             <button
               onClick={handleCancel}
               disabled={saving}
-              className="bidding-panel-subtitle"
-              style={{ opacity: 1, fontSize: '16px', fontWeight: 400, letterSpacing: '-0.32px', lineHeight: '100%', marginBottom: 'auto', paddingTop: '4px' }}
+              className="flex-1 border border-gray-300 rounded-lg font-bold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
+              style={{ letterSpacing: '-0.32px', lineHeight: '12px', height: '36px', fontSize: '14px', padding: '8px' }}
             >
               Cancel
             </button>
+            <button
+              onClick={handleSaveBid}
+              disabled={saving}
+              className="flex-1 bg-[#FF006E] text-white rounded-lg font-bold hover:bg-[#E0005E] transition disabled:opacity-50"
+              style={{ letterSpacing: '-0.32px', lineHeight: '12px', height: '36px', fontSize: '14px', padding: '8px' }}
+            >
+              {saving ? 'Saving...' : 'Save Bid'}
+            </button>
           </div>
-          <button
-            onClick={handleSaveBid}
-            disabled={saving}
-            className="w-full bg-[#FF006E] text-white py-3 px-3 rounded-lg font-bold text-base hover:bg-[#E0005E] transition disabled:opacity-50"
-            style={{ letterSpacing: '-0.32px', lineHeight: '74%' }}
-          >
-            {saving ? 'Saving...' : 'Save Bid'}
-          </button>
         </div>
       </>
     )

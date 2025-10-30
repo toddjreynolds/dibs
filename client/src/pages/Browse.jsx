@@ -130,12 +130,14 @@ export function Browse({ currentSection = 'browse' }) {
     // Initial load shows spinner
     loadData(true)
 
-    // Check if modal should reopen after Vite dev reload (Android camera fix)
-    const shouldReopen = sessionStorage.getItem('uploadModalShouldReopen')
-    if (shouldReopen === 'true') {
-      console.log('Reopening upload modal after page reload')
-      setShowUploadModal(true)
-      sessionStorage.removeItem('uploadModalShouldReopen')
+    // Check if modal should reopen after Vite dev reload (DEVELOPMENT ONLY - Android camera fix)
+    if (import.meta.env.DEV) {
+      const shouldReopen = sessionStorage.getItem('uploadModalShouldReopen')
+      if (shouldReopen === 'true') {
+        console.log('Reopening upload modal after page reload (dev mode)')
+        setShowUploadModal(true)
+        sessionStorage.removeItem('uploadModalShouldReopen')
+      }
     }
 
     // Real-time subscriptions update silently in background

@@ -22,14 +22,17 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
     checkMobile()
   }, [])
 
-  // Restore state from sessionStorage on mount (for Vite dev reload recovery)
+  // Restore state from sessionStorage on mount (DEVELOPMENT ONLY - for Vite dev reload recovery)
   useEffect(() => {
+    // Only restore state in development mode
+    if (!import.meta.env.DEV) return
+    
     const savedState = sessionStorage.getItem('uploadModalState')
     if (savedState) {
       try {
         const { imageFiles: savedImages } = JSON.parse(savedState)
         if (savedImages && savedImages.length > 0) {
-          console.log('Restoring', savedImages.length, 'photos from sessionStorage after page reload')
+          console.log('Restoring', savedImages.length, 'photos from sessionStorage after page reload (dev mode)')
           // Convert saved data back to File objects with previews
           const restoredFiles = savedImages.map(img => {
             // Convert base64 data URL to Blob, then to File
@@ -52,10 +55,13 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
           setImageFiles(restoredFiles)
           // Reopen the modal after reload
           if (!isOpen) {
-            console.log('Reopening modal after page reload')
-            // We need to notify parent, but we can't call onClose directly
-            // Instead, we'll set a flag that the parent should check
-            sessionStorage.setItem('uploadModalShouldReopen', 'true')
+            console.log('Reopening modal after page reload (dev mode)')
+            // Set a flag that the parent should check (already checked DEV mode above)
+            try {
+              sessionStorage.setItem('uploadModalShouldReopen', 'true')
+            } catch (error) {
+              console.warn('Could not set reopen flag:', error)
+            }
           }
         }
       } catch (error) {
@@ -65,19 +71,32 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
     }
   }, []) // Only run on mount
 
-  // Save imageFiles to sessionStorage whenever they change
+  // Save imageFiles to sessionStorage whenever they change (DEVELOPMENT ONLY)
+  // This handles Vite dev server reloads when returning from camera on Android
   useEffect(() => {
+    // Only use sessionStorage in development mode to avoid quota issues in production
+    if (!import.meta.env.DEV) return
+    
     if (imageFiles.length > 0) {
-      console.log('Saving', imageFiles.length, 'photos to sessionStorage')
-      const stateToSave = {
-        imageFiles: imageFiles.map(img => ({
-          id: img.id,
-          preview: img.preview,
-          fileName: img.file.name,
-          fileType: img.file.type
-        }))
+      console.log('Saving', imageFiles.length, 'photos to sessionStorage (dev mode)')
+      try {
+        const stateToSave = {
+          imageFiles: imageFiles.map(img => ({
+            id: img.id,
+            preview: img.preview,
+            fileName: img.file.name,
+            fileType: img.file.type
+          }))
+        }
+        sessionStorage.setItem('uploadModalState', JSON.stringify(stateToSave))
+      } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+          console.warn('SessionStorage quota exceeded, clearing old data')
+          sessionStorage.removeItem('uploadModalState')
+        } else {
+          console.error('Error saving to sessionStorage:', error)
+        }
       }
-      sessionStorage.setItem('uploadModalState', JSON.stringify(stateToSave))
     } else {
       // Clear if no images
       sessionStorage.removeItem('uploadModalState')

@@ -61,12 +61,75 @@ export function useAuth() {
     return { error }
   }
 
+  const updateDisplayName = async (firstName) => {
+    if (!user?.id) {
+      throw new Error('No user logged in')
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ first_name: firstName })
+      .eq('id', user.id)
+
+    if (error) {
+      throw error
+    }
+
+    // Refresh profile data
+    await fetchProfile(user.id)
+  }
+
+  const updateEmail = async (newEmail) => {
+    if (!user) {
+      throw new Error('No user logged in')
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      email: newEmail
+    })
+
+    if (error) {
+      throw error
+    }
+
+    // Note: Supabase will send a verification email to the new address
+    // The email won't be updated until the user clicks the verification link
+  }
+
+  const updatePassword = async (currentPassword, newPassword) => {
+    if (!user?.email) {
+      throw new Error('No user logged in')
+    }
+
+    // First verify the current password by attempting to sign in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword
+    })
+
+    if (signInError) {
+      throw new Error('Current password is incorrect')
+    }
+
+    // Now update to the new password
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword
+    })
+
+    if (updateError) {
+      throw updateError
+    }
+  }
+
   return {
     user,
     profile,
     loading,
     signIn,
     signOut,
+    updateDisplayName,
+    updateEmail,
+    updatePassword,
   }
 }
 

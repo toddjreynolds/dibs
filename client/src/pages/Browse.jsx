@@ -91,8 +91,16 @@ export function Browse({ currentSection = 'browse' }) {
       // Filter by status based on current section
       if (itemsData.length > 0 && 'status' in itemsData[0]) {
         if (currentSection === 'mystuff') {
-          // Only show resolved items won by the user
-          filteredItemsData = itemsData.filter(item => item.status === 'resolved' && item.winner_id === user.id)
+          // Show items won by user or their couple partner
+          const userProfile = profilesData?.find(p => p.id === user.id)
+          const partnerProfile = userProfile?.couple_id 
+            ? profilesData?.find(p => p.id !== user.id && p.couple_id === userProfile.couple_id)
+            : null
+          
+          filteredItemsData = itemsData.filter(item => {
+            if (item.status !== 'resolved') return false
+            return item.winner_id === user.id || (partnerProfile && item.winner_id === partnerProfile.id)
+          })
         } else if (currentSection === 'donation') {
           // Only show donated items
           filteredItemsData = itemsData.filter(item => item.status === 'donated')

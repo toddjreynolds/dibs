@@ -130,6 +130,14 @@ export function Browse({ currentSection = 'browse' }) {
     // Initial load shows spinner
     loadData(true)
 
+    // Check if modal should reopen after Vite dev reload (Android camera fix)
+    const shouldReopen = sessionStorage.getItem('uploadModalShouldReopen')
+    if (shouldReopen === 'true') {
+      console.log('Reopening upload modal after page reload')
+      setShowUploadModal(true)
+      sessionStorage.removeItem('uploadModalShouldReopen')
+    }
+
     // Real-time subscriptions update silently in background
     const itemsSubscription = supabase
       .channel('items_changes')
@@ -232,7 +240,11 @@ export function Browse({ currentSection = 'browse' }) {
       {/* Upload Modal */}
       <UploadModal
         isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
+        onClose={() => {
+          console.log('Browse.jsx: onClose called - closing modal')
+          console.trace('Browse.jsx: Stack trace for onClose')
+          setShowUploadModal(false)
+        }}
         onUploadComplete={() => loadData(false)}
       />
 

@@ -10,13 +10,104 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
   const [imageFiles, setImageFiles] = useState([])
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
   const [showSuccess, setShowSuccess] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect if user is on a mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera
+      const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i
+      setIsMobile(mobileRegex.test(userAgent.toLowerCase()))
+    }
+    checkMobile()
+  }, [])
+
+  // Restore state from sessionStorage on mount (for Vite dev reload recovery)
+  useEffect(() => {
+    const savedState = sessionStorage.getItem('uploadModalState')
+    if (savedState) {
+      try {
+        const { imageFiles: savedImages } = JSON.parse(savedState)
+        if (savedImages && savedImages.length > 0) {
+          console.log('Restoring', savedImages.length, 'photos from sessionStorage after page reload')
+          // Convert saved data back to File objects with previews
+          const restoredFiles = savedImages.map(img => {
+            // Convert base64 data URL to Blob, then to File
+            const base64Data = img.preview.split(',')[1]
+            const byteCharacters = atob(base64Data)
+            const byteNumbers = new Array(byteCharacters.length)
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i)
+            }
+            const byteArray = new Uint8Array(byteNumbers)
+            const blob = new Blob([byteArray], { type: img.fileType || 'image/jpeg' })
+            const file = new File([blob], img.fileName || 'photo.jpg', { type: img.fileType || 'image/jpeg' })
+            
+            return {
+              id: img.id,
+              preview: img.preview,
+              file: file
+            }
+          })
+          setImageFiles(restoredFiles)
+          // Reopen the modal after reload
+          if (!isOpen) {
+            console.log('Reopening modal after page reload')
+            // We need to notify parent, but we can't call onClose directly
+            // Instead, we'll set a flag that the parent should check
+            sessionStorage.setItem('uploadModalShouldReopen', 'true')
+          }
+        }
+      } catch (error) {
+        console.error('Error restoring upload state:', error)
+        sessionStorage.removeItem('uploadModalState')
+      }
+    }
+  }, []) // Only run on mount
+
+  // Save imageFiles to sessionStorage whenever they change
+  useEffect(() => {
+    if (imageFiles.length > 0) {
+      console.log('Saving', imageFiles.length, 'photos to sessionStorage')
+      const stateToSave = {
+        imageFiles: imageFiles.map(img => ({
+          id: img.id,
+          preview: img.preview,
+          fileName: img.file.name,
+          fileType: img.file.type
+        }))
+      }
+      sessionStorage.setItem('uploadModalState', JSON.stringify(stateToSave))
+    } else {
+      // Clear if no images
+      sessionStorage.removeItem('uploadModalState')
+    }
+  }, [imageFiles])
+
+  // Handle page visibility changes - save state before going to camera
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      console.log('Page visibility changed:', document.visibilityState, 'isOpen:', isOpen)
+      if (document.visibilityState === 'hidden' && isOpen && imageFiles.length > 0) {
+        console.log('Page going hidden - ensuring state is saved')
+        // State is already saved by the imageFiles useEffect above
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [isOpen, imageFiles])
 
   // Reset state when modal opens/closes
   useEffect(() => {
+    console.log('isOpen changed to:', isOpen)
     if (!isOpen) {
+      console.log('Modal is closing - resetting state')
       setImageFiles([])
       setUploadProgress({ current: 0, total: 0 })
       setShowSuccess(false)
+      // Clear sessionStorage when modal is explicitly closed
+      sessionStorage.removeItem('uploadModalState')
+      sessionStorage.removeItem('uploadModalShouldReopen')
     }
   }, [isOpen])
 
@@ -24,6 +115,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape' && !uploading && isOpen) {
+        console.log('Modal closing due to ESC key')
         onClose()
       }
     }
@@ -33,7 +125,11 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
 
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files || [])
-    if (files.length === 0) return
+    console.log('handleImageChange called, files:', files.length)
+    if (files.length === 0) {
+      console.log('No files selected - user may have cancelled')
+      return
+    }
 
     // Create preview objects for each file
     const newImageFiles = await Promise.all(
@@ -150,6 +246,11 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
       // Show success message
       setShowSuccess(true)
       
+      // Clear sessionStorage after successful upload
+      console.log('Upload successful - clearing sessionStorage')
+      sessionStorage.removeItem('uploadModalState')
+      sessionStorage.removeItem('uploadModalShouldReopen')
+      
       // Refresh data
       if (onUploadComplete) {
         onUploadComplete()
@@ -172,10 +273,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity"
-        onClick={() => !uploading && onClose()}
-      />
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity" />
 
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
@@ -184,7 +282,10 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-gray-800">Upload Items</h2>
             <button
-              onClick={onClose}
+              onClick={() => {
+                console.log('Modal closing due to X button click')
+                onClose()
+              }}
               disabled={uploading}
               className="text-gray-400 hover:text-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -235,26 +336,82 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
                     </div>
                   )}
 
-                  {/* Upload Button */}
+                  {/* Upload Button(s) */}
                   {!uploading && (
-                    <label className="block cursor-pointer">
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-secondary transition">
-                        <span className="material-symbols-rounded text-5xl text-gray-400 mb-3 block">
-                          add_photo_alternate
-                        </span>
-                        <p className="text-gray-600 mb-1 font-medium">
-                          {imageFiles.length === 0 ? 'Click to upload photos' : 'Add more photos'}
-                        </p>
-                        <p className="text-sm text-gray-500">PNG, JPG up to 10MB each</p>
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                    </label>
+                    <>
+                      {isMobile ? (
+                        /* Mobile: Two side-by-side buttons */
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Take Photo Button */}
+                          <label 
+                            className="block cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-secondary transition">
+                              <span className="material-symbols-rounded text-4xl text-gray-400 mb-2 block">
+                                photo_camera
+                              </span>
+                              <p className="text-gray-600 text-sm font-medium">
+                                Take Photo
+                              </p>
+                            </div>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              onChange={handleImageChange}
+                              onFocus={() => console.log('Take Photo input focused')}
+                              onBlur={() => console.log('Take Photo input blurred')}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {/* Choose Photos Button */}
+                          <label 
+                            className="block cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-secondary transition">
+                              <span className="material-symbols-rounded text-4xl text-gray-400 mb-2 block">
+                                photo_library
+                              </span>
+                              <p className="text-gray-600 text-sm font-medium">
+                                Choose Photos
+                              </p>
+                            </div>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={handleImageChange}
+                              onFocus={() => console.log('Choose Photos input focused')}
+                              onBlur={() => console.log('Choose Photos input blurred')}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        /* Desktop: Single button */
+                        <label className="block cursor-pointer">
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-secondary transition">
+                            <span className="material-symbols-rounded text-5xl text-gray-400 mb-3 block">
+                              add_photo_alternate
+                            </span>
+                            <p className="text-gray-600 mb-1 font-medium">
+                              {imageFiles.length === 0 ? 'Click to upload photos' : 'Add more photos'}
+                            </p>
+                            <p className="text-sm text-gray-500">PNG, JPG up to 10MB each</p>
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleImageChange}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </>
                   )}
 
                   {/* Upload Progress */}
@@ -284,7 +441,10 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
                   <div className="flex gap-3 pt-2">
                     <button
                       type="button"
-                      onClick={onClose}
+                      onClick={() => {
+                        console.log('Modal closing due to Cancel button click')
+                        onClose()
+                      }}
                       className="flex-1 py-3 px-6 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition"
                     >
                       Cancel

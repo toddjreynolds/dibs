@@ -129,7 +129,7 @@ export function EditEmailModal({ isOpen, onClose }) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={saving}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8338EC] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-3 bg-white text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8338EC] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="Enter your email address"
                     autoFocus
                   />

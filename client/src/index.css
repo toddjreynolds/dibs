@@ -84,20 +84,6 @@ body {
   color: #9ca3af;
 }
 
-.conflict-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background-color: #FB5607;
-  color: white;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
 
 .status-badge {
   position: absolute;
@@ -159,6 +145,11 @@ body {
   z-index: 1;
 }
 
+.interested-badge svg {
+  width: 40px;
+  height: 40px;
+}
+
 .declined-badge {
   position: absolute;
   top: 50%;
@@ -177,6 +168,27 @@ body {
 .declined-badge-icon {
   color: white;
   font-size: 40px;
+}
+
+@media (max-width: 640px) {
+  .interested-badge {
+    width: 72px;
+    height: 72px;
+  }
+
+  .interested-badge svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .declined-badge {
+    width: 72px;
+    height: 72px;
+  }
+
+  .declined-badge-icon {
+    font-size: 28px;
+  }
 }
 
 
@@ -200,6 +212,19 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: 'Bricolage Grotesque', sans-serif;
+}
+
+@media (max-width: 640px) {
+  .card-actions {
+    gap: 8px;
+    padding: 0 12px;
+  }
+
+  .action-btn {
+    padding: 10px 8px;
+    gap: 4px;
+    border-radius: 6px;
+  }
 }
 
 .action-btn:disabled {
@@ -311,6 +336,16 @@ body {
   letter-spacing: -0.4px;
 }
 
+@media (max-width: 640px) {
+  .action-icon.material-symbols-rounded {
+    font-size: 24px;
+  }
+
+  .action-label {
+    display: none;
+  }
+}
+
 
 /* Floating Navigation Styles */
 .floating-nav {
@@ -338,7 +373,7 @@ body {
   align-items: center;
   gap: 4px;
   flex: 1;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .nav-item {
@@ -578,7 +613,7 @@ body {
 
   .nav-items {
     flex: 1;
-    justify-content: flex-start;
+    justify-content: space-between;
     gap: 8px;
   }
 
@@ -712,6 +747,26 @@ body {
   letter-spacing: -0.22px;
 }
 
+@media (max-width: 640px) {
+  .timer-badge {
+    top: 6px;
+    right: 6px;
+    height: 20px;
+    padding: 3px 8px 3px 6px;
+    gap: 2px;
+    border-radius: 12px;
+  }
+
+  .timer-badge-icon {
+    font-size: 12px;
+  }
+
+  .timer-badge-text {
+    font-size: 9px;
+    letter-spacing: -0.18px;
+  }
+}
+
 /* Interested Users Badges */
 .interested-user-badge {
   display: flex;
@@ -749,6 +804,30 @@ body {
   z-index: 2;
 }
 
+@media (max-width: 640px) {
+  .interested-users-container {
+    top: 6px;
+    left: 6px;
+    gap: 6px;
+  }
+
+  .interested-user-badge {
+    height: 20px;
+    padding: 3px 8px 3px 6px;
+    gap: 2px;
+    border-radius: 12px;
+  }
+
+  .interested-user-icon {
+    font-size: 12px;
+  }
+
+  .interested-user-name {
+    font-size: 9px;
+    letter-spacing: -0.18px;
+  }
+}
+
 /* Bidding Styles */
 .bidding-overlay {
   position: absolute;
@@ -781,6 +860,35 @@ body {
   color: #FF006E;
 }
 
+.user-bid-badge {
+  position: absolute;
+  top: calc(50% + 52px);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  padding: 8px 12px;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  border-radius: 16px;
+  border: 1px solid #FFF;
+  background: #FF006E;
+  color: #FFF;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 100%;
+  letter-spacing: -0.32px;
+  white-space: nowrap;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.user-bid-badge:active {
+  opacity: 0.9;
+  transform: translate(-50%, -50%) scale(0.98);
+}
+
 .bidding-panel {
   position: absolute;
   bottom: 0;
@@ -792,13 +900,41 @@ body {
   box-shadow: 0 5px 12px 0 rgba(0, 0, 0, 0.16);
   border: 1px solid rgba(111, 111, 111, 0.20);
   z-index: 4;
-  margin: 0 16px 16px 16px;
+  margin: 0 12px 12px 12px;
   transition: all 0.3s ease;
 }
 
 .bidding-panel-editing {
   padding: 12px;
-  margin: 0 11px 12px 12px;
+  margin: 0 12px 12px 12px;
+}
+
+@media (max-width: 640px) {
+  .bidding-badge-center {
+    width: 72px;
+    height: 72px;
+  }
+
+  .bidding-icon {
+    font-size: 28px;
+  }
+
+  .user-bid-badge {
+    top: calc(50% + 36px);
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+
+  .bidding-panel {
+    padding: 8px 12px;
+    margin: 0 6px 6px 6px;
+    border-radius: 6px;
+  }
+
+  .bidding-panel-editing {
+    padding: 10px;
+    margin: 0 6px 6px 6px;
+  }
 }
 
 .bidding-panel-button {
@@ -812,8 +948,19 @@ body {
   cursor: pointer;
 }
 
+.bidding-panel-clickable {
+  cursor: pointer;
+}
+
+.bidding-panel-edit-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
 .bidding-panel-icon {
-  font-size: 24px;
+  font-size: 20px;
   color: #FF006E;
   flex-shrink: 0;
 }
@@ -830,7 +977,7 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  gap: 4px;
+  gap: 6px;
 }
 
 .bidding-panel-title {
@@ -848,6 +995,34 @@ body {
   line-height: 74%;
   letter-spacing: -0.24px;
   opacity: 0.6;
+}
+
+@media (max-width: 640px) {
+  .bidding-panel-icon {
+    font-size: 20px;
+  }
+
+  .bidding-panel-content {
+    gap: 4px;
+  }
+
+  .bidding-panel-title {
+    font-size: 16px;
+    letter-spacing: -0.32px;
+  }
+
+  .bidding-panel-subtitle {
+    font-size: 10px;
+    letter-spacing: -0.2px;
+  }
+
+  .bidding-panel-button {
+    gap: 6px;
+  }
+
+  .bidding-panel-edit-button {
+    display: none;
+  }
 }
 
 .bid-input {
@@ -871,4 +1046,134 @@ body {
 .bid-input::placeholder {
   color: #6F6F6F;
   opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .bid-input {
+    font-size: 16px;
+  }
+
+  .bidding-panel-editing button {
+    height: 32px !important;
+    font-size: 12px !important;
+    padding: 6px !important;
+  }
+
+  .bidding-panel button.bidding-panel-subtitle {
+    font-size: 14px !important;
+  }
+}
+
+/* Slider Styles */
+.slider-input {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  height: 8px;
+}
+
+.slider-input::-webkit-slider-track {
+  background: #E5E7EB;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.slider-input::-moz-range-track {
+  background: #E5E7EB;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  height: 20px;
+  width: 20px;
+  margin-top: -6px;
+}
+
+.slider-input::-moz-range-thumb {
+  background: white;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  height: 20px;
+  width: 20px;
+}
+
+.slider-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.slider-input:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+}
+
+.slider-input:disabled::-moz-range-thumb {
+  cursor: not-allowed;
+}
+
+/* Bid Modal Slider Styles - RC Slider */
+.bid-slider-wrapper {
+  padding: 12px 0;
+}
+
+.bid-slider-wrapper .rc-slider {
+  height: 16px;
+}
+
+.bid-slider-wrapper .rc-slider-rail {
+  background-color: #E5E7EB;
+  height: 16px;
+  border-radius: 8px;
+}
+
+.bid-slider-wrapper .rc-slider-track {
+  background-color: #FF006E;
+  height: 16px;
+  border-radius: 8px;
+}
+
+.bid-slider-wrapper .rc-slider-handle {
+  width: 40px;
+  height: 40px;
+  margin-top: -12px;
+  background-color: white !important;
+  opacity: 1 !important;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.bid-slider-wrapper .rc-slider-handle:active,
+.bid-slider-wrapper .rc-slider-handle:focus,
+.bid-slider-wrapper .rc-slider-handle:hover {
+  background-color: white !important;
+  opacity: 1 !important;
+  border: none;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  outline: none;
+}
+
+.bid-slider-wrapper .rc-slider-handle-dragging {
+  background-color: white !important;
+  opacity: 1 !important;
+  border: none;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.bid-slider-wrapper .rc-slider-disabled {
+  opacity: 0.5;
+}
+
+.bid-slider-wrapper .rc-slider-disabled .rc-slider-handle {
+  cursor: not-allowed;
 }

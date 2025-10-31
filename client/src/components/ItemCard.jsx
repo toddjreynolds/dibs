@@ -4,12 +4,14 @@ import { useAuthContext } from '../utils/AuthContext'
 import { TimerBadge } from './TimerBadge'
 import { InterestedUsersBadges } from './InterestedUsersBadges'
 import { BiddingPanel } from './BiddingPanel'
+import { PlaceBidModal } from './PlaceBidModal'
 import { checkAndResolveItem } from '../utils/itemResolution'
 import { groupInterestedByCouples } from '../utils/coupleUtils'
 
 export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, profiles, userPoints, currentSection }) {
   const { user } = useAuthContext()
   const [loading, setLoading] = useState(false)
+  const [isBidModalOpen, setIsBidModalOpen] = useState(false)
 
   const handleClaim = async (status) => {
     if (loading) return
@@ -71,6 +73,9 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, profile
     }
   }
 
+  const currentBid = userClaim?.bid_amount || 0
+  const availablePoints = (userPoints || 100) - currentBid
+
   const interestedCount = item.interested_count || 0
   const interestedGroups = groupInterestedByCouples(item.claims || [], profiles || [])
   const hasConflict = interestedGroups.length > 1
@@ -111,7 +116,7 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, profile
             item={item}
             userClaim={userClaim}
             userPoints={userPoints || 100}
-            onBidUpdate={handleBidUpdate}
+            onEdit={() => setIsBidModalOpen(true)}
           />
         )}
 
@@ -138,14 +143,6 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, profile
         {isDeclined && currentSection !== 'donation' && (
           <div className="declined-badge">
             <span className="material-symbols-rounded declined-badge-icon">delete</span>
-          </div>
-        )}
-
-        {/* Conflict Badge (only when viewing but not interested) */}
-        {hasConflict && !isInterested && !isDeclined && currentSection !== 'donation' && (
-          <div className="conflict-badge">
-            <span className="material-symbols-rounded text-sm">warning</span>
-            <span>{interestedGroups.length} want this</span>
           </div>
         )}
       </div>
@@ -177,6 +174,18 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, profile
             <span className="action-label">{isDeclined ? 'Passed' : 'Pass'}</span>
           </button>
         </div>
+      )}
+
+      {/* Place Bid Modal */}
+      {isInConflict && currentSection !== 'donation' && (
+        <PlaceBidModal
+          isOpen={isBidModalOpen}
+          onClose={() => setIsBidModalOpen(false)}
+          currentBid={userClaim?.bid_amount}
+          availablePoints={availablePoints}
+          userClaim={userClaim}
+          onSave={handleBidUpdate}
+        />
       )}
     </div>
   )

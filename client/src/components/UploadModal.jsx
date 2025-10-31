@@ -11,6 +11,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
   const [showSuccess, setShowSuccess] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [isClosing, setIsClosing] = useState(false)
 
   // Detect if user is on a mobile device
   useEffect(() => {
@@ -124,23 +125,31 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
       setImageFiles([])
       setUploadProgress({ current: 0, total: 0 })
       setShowSuccess(false)
+      setIsClosing(false)
       // Clear sessionStorage when modal is explicitly closed
       sessionStorage.removeItem('uploadModalState')
       sessionStorage.removeItem('uploadModalShouldReopen')
     }
   }, [isOpen])
 
+  const handleClose = () => {
+    setIsClosing(true)
+    setTimeout(() => {
+      onClose()
+    }, 300) // Match animation duration
+  }
+
   // Handle ESC key to close
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape' && !uploading && isOpen) {
         console.log('Modal closing due to ESC key')
-        onClose()
+        handleClose()
       }
     }
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
-  }, [uploading, isOpen, onClose])
+  }, [uploading, isOpen])
 
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files || [])
@@ -275,9 +284,9 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
         onUploadComplete()
       }
 
-      // Close modal after brief delay
+      // Close modal after brief delay with animation
       setTimeout(() => {
-        onClose()
+        handleClose()
       }, 1500)
     } catch (error) {
       console.error('Error uploading:', error)
@@ -292,18 +301,26 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity" />
+      <div 
+        className={`fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity duration-300 ${
+          isClosing ? 'opacity-0' : 'opacity-100'
+        }`}
+      />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-        <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-3 md:px-8 lg:px-12 py-4 pointer-events-none">
+        <div 
+          className={`bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto transition-all duration-300 ${
+            isClosing ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
+          }`}
+        >
           {/* Header */}
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-gray-800">Upload Items</h2>
             <button
               onClick={() => {
                 console.log('Modal closing due to X button click')
-                onClose()
+                handleClose()
               }}
               disabled={uploading}
               className="text-gray-400 hover:text-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -462,7 +479,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
                       type="button"
                       onClick={() => {
                         console.log('Modal closing due to Cancel button click')
-                        onClose()
+                        handleClose()
                       }}
                       className="flex-1 py-3 px-6 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition"
                     >

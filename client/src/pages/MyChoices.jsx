@@ -121,7 +121,7 @@ export function MyChoices() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {interestedItems.map(item => {
                     // Calculate available points for this specific item
                     const availablePoints = calculateAvailablePoints(userPoints, userClaimsArray, items, item.id)
@@ -177,7 +177,7 @@ export function MyChoices() {
                 <p className="text-gray-500">No items declined yet</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {declinedItems.map(item => {
                   // Calculate available points for this specific item
                   const availablePoints = calculateAvailablePoints(userPoints, userClaimsArray, items, item.id)

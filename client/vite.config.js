@@ -7,5 +7,8 @@ export default defineConfig({
   server: {
     host: true, // Expose to network for mobile testing
     port: 5173
+  },
+  optimizeDeps: {
+    include: ['rc-slider']
   }
 })

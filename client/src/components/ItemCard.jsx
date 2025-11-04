@@ -5,6 +5,7 @@ import { TimerBadge } from './TimerBadge'
 import { InterestedUsersBadges } from './InterestedUsersBadges'
 import { BiddingPanel } from './BiddingPanel'
 import { PlaceBidModal } from './PlaceBidModal'
+import { ImageViewerModal } from './ImageViewerModal'
 import { checkAndResolveItem } from '../utils/itemResolution'
 import { groupInterestedByCouples } from '../utils/coupleUtils'
 
@@ -12,6 +13,7 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, profile
   const { user } = useAuthContext()
   const [loading, setLoading] = useState(false)
   const [isBidModalOpen, setIsBidModalOpen] = useState(false)
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
 
   const handleClaim = async (status) => {
     if (loading) return
@@ -86,7 +88,11 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, profile
   return (
     <div className="item-card" style={currentSection === 'donation' ? { paddingBottom: 0 } : undefined}>
       {/* Image */}
-      <div className="item-image-container">
+      <div 
+        className="item-image-container"
+        onClick={() => item.image_url && setIsImageViewerOpen(true)}
+        style={item.image_url ? { cursor: 'pointer' } : undefined}
+      >
         {item.image_url ? (
           <img
             src={item.image_url}
@@ -185,6 +191,15 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, profile
           availablePoints={availablePoints}
           userClaim={userClaim}
           onSave={handleBidUpdate}
+        />
+      )}
+
+      {/* Image Viewer Modal */}
+      {item.image_url && (
+        <ImageViewerModal
+          isOpen={isImageViewerOpen}
+          onClose={() => setIsImageViewerOpen(false)}
+          imageUrl={item.image_url}
         />
       )}
     </div>

@@ -21,5 +21,5 @@
 
 ## Bugs
 
-_(No bugs currently tracked)_
+- [ ] Some item pictures are not going through and end up as blank/white images in the data base and the app. 
 

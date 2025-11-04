@@ -200,6 +200,9 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, profile
           isOpen={isImageViewerOpen}
           onClose={() => setIsImageViewerOpen(false)}
           imageUrl={item.image_url}
+          item={item}
+          user={user}
+          onDelete={onDataReload}
         />
       )}
     </div>

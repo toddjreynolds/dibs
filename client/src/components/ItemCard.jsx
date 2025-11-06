@@ -194,6 +194,7 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, onBidPl
           currentBid={userClaim?.bid_amount}
           availablePoints={availablePoints}
           userClaim={userClaim}
+          itemId={item.id}
           onSave={handleBidUpdate}
         />
       )}

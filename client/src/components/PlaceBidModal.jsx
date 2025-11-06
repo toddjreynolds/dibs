@@ -3,20 +3,56 @@ import Slider from 'rc-slider'
 import 'rc-slider/assets/index.css'
 import { supabase } from '../api/supabase'
 
-export function PlaceBidModal({ isOpen, onClose, currentBid, availablePoints, userClaim, onSave }) {
+export function PlaceBidModal({ isOpen, onClose, currentBid, availablePoints, userClaim, itemId, onSave }) {
   const [bidAmount, setBidAmount] = useState(0)
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [isClosing, setIsClosing] = useState(false)
+  const [fetchingClaim, setFetchingClaim] = useState(false)
   const claimIdRef = useRef(null)
 
-  // Prepopulate with current bid amount
+  // Prepopulate with current bid amount and fetch claim ID if needed
   useEffect(() => {
-    if (isOpen && userClaim?.id) {
+    if (isOpen) {
       setBidAmount(currentBid || 0)
-      claimIdRef.current = userClaim.id
+      
+      // If we have the claim ID, use it
+      if (userClaim?.id) {
+        claimIdRef.current = userClaim.id
+      } else if (itemId) {
+        // Otherwise, fetch the claim from the database
+        const fetchClaimId = async () => {
+          setFetchingClaim(true)
+          try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
+              console.error('No authenticated user found')
+              return
+            }
+            
+            const { data, error } = await supabase
+              .from('claims')
+              .select('id')
+              .eq('item_id', itemId)
+              .eq('user_id', user.id)
+              .single()
+
+            if (error) {
+              console.error('Error fetching claim:', error)
+            } else if (data?.id) {
+              claimIdRef.current = data.id
+            }
+          } catch (err) {
+            console.error('Error in fetchClaimId:', err)
+          } finally {
+            setFetchingClaim(false)
+          }
+        }
+        
+        fetchClaimId()
+      }
     }
-  }, [isOpen, currentBid, userClaim])
+  }, [isOpen, currentBid, userClaim, itemId])
 
   // Reset state when modal closes
   useEffect(() => {
@@ -24,6 +60,8 @@ export function PlaceBidModal({ isOpen, onClose, currentBid, availablePoints, us
       setBidAmount(0)
       setShowSuccess(false)
       setIsClosing(false)
+      setFetchingClaim(false)
+      claimIdRef.current = null
     }
   }, [isOpen])
 
@@ -36,13 +74,13 @@ export function PlaceBidModal({ isOpen, onClose, currentBid, availablePoints, us
 
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && !saving && isOpen) {
+      if (e.key === 'Escape' && !saving && !fetchingClaim && isOpen) {
         handleClose()
       }
     }
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
-  }, [saving, isOpen, handleClose])
+  }, [saving, fetchingClaim, isOpen, handleClose])
 
   const handleBidChange = (value) => {
     const numValue = typeof value === 'number' ? value : parseInt(value) || 0
@@ -70,7 +108,7 @@ export function PlaceBidModal({ isOpen, onClose, currentBid, availablePoints, us
     const claimId = claimIdRef.current || userClaim?.id
     
     if (!claimId) {
-      alert('No claim found. Please try again.')
+      alert('Unable to find your claim. Please close this modal and try again. If the problem persists, try refreshing the page.')
       return
     }
 
@@ -126,7 +164,7 @@ export function PlaceBidModal({ isOpen, onClose, currentBid, availablePoints, us
             <h2 className="text-2xl font-bold text-gray-800">Place Your Bid</h2>
             <button
               onClick={handleClose}
-              disabled={saving}
+              disabled={saving || fetchingClaim}
               className="text-gray-400 hover:text-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="material-symbols-rounded text-3xl">close</span>
@@ -166,7 +204,7 @@ export function PlaceBidModal({ isOpen, onClose, currentBid, availablePoints, us
                         step={1}
                         value={bidAmount}
                         onChange={handleBidChange}
-                        disabled={saving}
+                        disabled={saving || fetchingClaim}
                       />
                     </div>
                     <p className="text-sm text-gray-500 text-center">
@@ -179,11 +217,11 @@ export function PlaceBidModal({ isOpen, onClose, currentBid, availablePoints, us
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={saving}
+                    disabled={saving || fetchingClaim}
                     className="w-full bg-[#FF006E] text-white rounded-lg font-bold hover:bg-[#E0005E] transition disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ fontSize: '18px', letterSpacing: '-0.4px', lineHeight: '74%', padding: '14px 12px' }}
                   >
-                    {saving ? 'Saving...' : 'Save Your Bid'}
+                    {fetchingClaim ? 'Loading...' : saving ? 'Saving...' : 'Save Your Bid'}
                   </button>
                 </div>
               </form>

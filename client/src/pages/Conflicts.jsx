@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../api/supabase'
 
 export function Conflicts() {
@@ -148,60 +149,73 @@ export function Conflicts() {
             </div>
           </div>
 
-          {conflicts.map(item => (
-            <div key={item.id} className="bg-white rounded-xl shadow-md overflow-hidden">
-              <div className="md:flex">
-                {/* Image */}
-                <div className="md:w-64 md:flex-shrink-0">
-                  <div className="aspect-square bg-gray-200 relative">
-                    {item.image_url ? (
-                      <img
-                        src={item.image_url}
-                        alt={item.name || 'Item'}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <span className="material-symbols-rounded text-6xl">inventory_2</span>
-                      </div>
-                    )}
-                    <div className="absolute top-2 right-2 text-white px-3 py-2 rounded-full text-sm font-bold" style={{ backgroundColor: '#FF006E' }}>
-                      {item.interestedUsers.length} people
-                    </div>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-6 flex-1">
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-                      People Interested ({item.interestedUsers.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {item.interestedUsers.map((user, index) => (
-                        <div
-                          key={user.id}
-                          className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-secondary text-white rounded-full flex items-center justify-center font-semibold">
-                              {user.name?.charAt(0) || '?'}
-                            </div>
-                            <span className="font-medium text-gray-800">
-                              {user.name || 'Unknown User'}
-                            </span>
+          <AnimatePresence mode="popLayout">
+            {conflicts.map(item => (
+              <motion.div
+                key={item.id}
+                layout
+                initial={{ opacity: 1, scale: 1 }}
+                exit={{ 
+                  opacity: 0, 
+                  scale: 0.8,
+                  transition: { duration: 0.3, ease: "easeOut" }
+                }}
+              >
+                <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                  <div className="md:flex">
+                    {/* Image */}
+                    <div className="md:w-64 md:flex-shrink-0">
+                      <div className="aspect-square bg-gray-200 relative">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.name || 'Item'}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            <span className="material-symbols-rounded text-6xl">inventory_2</span>
                           </div>
-                          <span className="text-xs text-gray-500">
-                            {new Date(user.claimedAt).toLocaleDateString()}
-                          </span>
+                        )}
+                        <div className="absolute top-2 right-2 text-white px-3 py-2 rounded-full text-sm font-bold" style={{ backgroundColor: '#FF006E' }}>
+                          {item.interestedUsers.length} people
                         </div>
-                      ))}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-6 flex-1">
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+                          People Interested ({item.interestedUsers.length})
+                        </h3>
+                        <div className="space-y-2">
+                          {item.interestedUsers.map((user, index) => (
+                            <div
+                              key={user.id}
+                              className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+                            >
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-secondary text-white rounded-full flex items-center justify-center font-semibold">
+                                  {user.name?.charAt(0) || '?'}
+                                </div>
+                                <span className="font-medium text-gray-800">
+                                  {user.name || 'Unknown User'}
+                                </span>
+                              </div>
+                              <span className="text-xs text-gray-500">
+                                {new Date(user.claimedAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>

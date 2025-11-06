@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../api/supabase'
 import { useAuthContext } from '../utils/AuthContext'
 import { ItemCard } from '../components/ItemCard'
@@ -12,9 +13,71 @@ export function MyChoices() {
   const [profiles, setProfiles] = useState([])
   const [userPoints, setUserPoints] = useState(100)
   const [loading, setLoading] = useState(true)
+  const [exitingItems, setExitingItems] = useState(new Set())
+
+  const optimisticClaimUpdate = (itemId, status, existingClaim) => {
+    // Update userClaims immediately for instant UI feedback
+    setUserClaims(prev => {
+      const newClaims = { ...prev }
+      if (existingClaim) {
+        if (existingClaim.status === status) {
+          // Remove claim if clicking same status
+          delete newClaims[itemId]
+        } else {
+          // Update to new status
+          newClaims[itemId] = { ...existingClaim, status }
+        }
+      } else {
+        // Create new claim
+        newClaims[itemId] = { item_id: itemId, user_id: user.id, status }
+      }
+      return newClaims
+    })
+
+    // Update interested_count in items
+    setItems(prev => prev.map(item => {
+      if (item.id !== itemId) return item
+      
+      let interestedDelta = 0
+      const wasInterested = existingClaim?.status === 'interested'
+      const nowInterested = status === 'interested' && existingClaim?.status !== 'interested'
+      
+      if (nowInterested) interestedDelta = 1
+      if (wasInterested && status !== 'interested') interestedDelta = -1
+      
+      return {
+        ...item,
+        interested_count: Math.max(0, item.interested_count + interestedDelta)
+      }
+    }))
+
+    // Show styling transition before exit
+    const shouldExit = !existingClaim || (existingClaim.status !== status)
+    if (shouldExit) {
+      // Add to exiting items immediately to keep it in the filtered list
+      setExitingItems(prev => new Set(prev).add(itemId))
+      // Wait 600ms to show the styling, then remove from exiting to trigger exit animation
+      setTimeout(() => {
+        setExitingItems(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(itemId)
+          return newSet
+        })
+        // Reload data after the exit animation completes
+        setTimeout(() => {
+          loadData()
+        }, 400) // 300ms exit animation + 100ms buffer
+      }, 600)
+    } else {
+      // No exit, reload immediately
+      loadData()
+    }
+  }
 
   const loadData = async () => {
     setLoading(true)
+    // Clear exiting items when reloading data
+    setExitingItems(new Set())
     try {
       // Fetch all profiles
       const { data: profilesData, error: profilesError } = await supabase
@@ -83,8 +146,14 @@ export function MyChoices() {
     }
   }, [user])
 
-  const interestedItems = items.filter(item => userClaims[item.id]?.status === 'interested')
-  const declinedItems = items.filter(item => userClaims[item.id]?.status === 'declined')
+  const interestedItems = items.filter(item => 
+    userClaims[item.id]?.status === 'interested' || 
+    (exitingItems.has(item.id) && userClaims[item.id]?.status !== 'declined')
+  )
+  const declinedItems = items.filter(item => 
+    userClaims[item.id]?.status === 'declined' || 
+    (exitingItems.has(item.id) && userClaims[item.id]?.status !== 'interested')
+  )
 
   return (
     <div>
@@ -122,22 +191,34 @@ export function MyChoices() {
             ) : (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {interestedItems.map(item => {
-                    // Calculate available points for this specific item
-                    const availablePoints = calculateAvailablePoints(userPoints, userClaimsArray, items, item.id)
-                    
-                    return (
-                      <ItemCard
-                        key={item.id}
-                        item={item}
-                        userClaim={userClaims[item.id]}
-                        onClaimUpdate={loadData}
-                        onDataReload={loadData}
-                        profiles={profiles}
-                        userPoints={availablePoints}
-                      />
-                    )
-                  })}
+                  <AnimatePresence mode="popLayout">
+                    {interestedItems.map(item => {
+                      // Calculate available points for this specific item
+                      const availablePoints = calculateAvailablePoints(userPoints, userClaimsArray, items, item.id)
+                      
+                      return (
+                        <motion.div
+                          key={item.id}
+                          layout
+                          initial={{ opacity: 1, scale: 1 }}
+                          exit={{ 
+                            opacity: 0, 
+                            scale: 0.8,
+                            transition: { duration: 0.3, ease: "easeOut" }
+                          }}
+                        >
+                          <ItemCard
+                            item={item}
+                            userClaim={userClaims[item.id]}
+                            onClaimUpdate={optimisticClaimUpdate}
+                            onDataReload={loadData}
+                            profiles={profiles}
+                            userPoints={availablePoints}
+                          />
+                        </motion.div>
+                      )
+                    })}
+                  </AnimatePresence>
                 </div>
 
                 {/* Conflict Warning */}
@@ -178,22 +259,34 @@ export function MyChoices() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {declinedItems.map(item => {
-                  // Calculate available points for this specific item
-                  const availablePoints = calculateAvailablePoints(userPoints, userClaimsArray, items, item.id)
-                  
-                  return (
-                    <ItemCard
-                      key={item.id}
-                      item={item}
-                      userClaim={userClaims[item.id]}
-                      onClaimUpdate={loadData}
-                      onDataReload={loadData}
-                      profiles={profiles}
-                      userPoints={availablePoints}
-                    />
-                  )
-                })}
+                <AnimatePresence mode="popLayout">
+                  {declinedItems.map(item => {
+                    // Calculate available points for this specific item
+                    const availablePoints = calculateAvailablePoints(userPoints, userClaimsArray, items, item.id)
+                    
+                    return (
+                      <motion.div
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 1, scale: 1 }}
+                        exit={{ 
+                          opacity: 0, 
+                          scale: 0.8,
+                          transition: { duration: 0.3, ease: "easeOut" }
+                        }}
+                      >
+                        <ItemCard
+                          item={item}
+                          userClaim={userClaims[item.id]}
+                          onClaimUpdate={optimisticClaimUpdate}
+                          onDataReload={loadData}
+                          profiles={profiles}
+                          userPoints={availablePoints}
+                        />
+                      </motion.div>
+                    )
+                  })}
+                </AnimatePresence>
               </div>
             )}
           </div>

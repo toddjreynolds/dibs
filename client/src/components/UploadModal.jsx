@@ -186,8 +186,20 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
   const uploadSingleImage = async (imageFile) => {
     console.log('Starting upload for:', imageFile.file.name)
     
-    const compressedImage = await compressImage(imageFile.file)
-    console.log('Image compressed:', compressedImage)
+    // Compress image with validation and retry logic
+    let compressedImage
+    try {
+      compressedImage = await compressImage(imageFile.file)
+      console.log('Image compressed successfully:', compressedImage.size, 'bytes')
+    } catch (compressionError) {
+      console.error('Compression failed:', compressionError)
+      throw new Error(`Failed to compress "${imageFile.file.name}": ${compressionError.message}`)
+    }
+    
+    // Additional safety check: ensure compressed file has reasonable size
+    if (compressedImage.size < 1000) {
+      throw new Error(`Compressed image "${imageFile.file.name}" is too small (${compressedImage.size} bytes) - likely corrupt. Please try a different photo.`)
+    }
     
     const fileExt = imageFile.file.name.split('.').pop()
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
@@ -264,33 +276,67 @@ export function UploadModal({ isOpen, onClose, onUploadComplete }) {
     setUploading(true)
     setUploadProgress({ current: 0, total: imageFiles.length })
 
+    const failedUploads = []
+
     try {
       // Upload images sequentially to avoid overwhelming the server
       for (let i = 0; i < imageFiles.length; i++) {
         setUploadProgress({ current: i + 1, total: imageFiles.length })
-        await uploadSingleImage(imageFiles[i])
+        try {
+          await uploadSingleImage(imageFiles[i])
+        } catch (uploadError) {
+          console.error(`Failed to upload image ${i + 1}:`, uploadError)
+          failedUploads.push({
+            fileName: imageFiles[i].file.name,
+            error: uploadError.message
+          })
+          // Continue with remaining uploads instead of stopping
+        }
       }
 
-      // Show success message
-      setShowSuccess(true)
-      
-      // Clear sessionStorage after successful upload
-      console.log('Upload successful - clearing sessionStorage')
-      sessionStorage.removeItem('uploadModalState')
-      sessionStorage.removeItem('uploadModalShouldReopen')
-      
-      // Refresh data
-      if (onUploadComplete) {
-        onUploadComplete()
-      }
+      const successCount = imageFiles.length - failedUploads.length
 
-      // Close modal after brief delay with animation
-      setTimeout(() => {
-        handleClose()
-      }, 1500)
+      if (successCount > 0) {
+        // Show success message for successful uploads
+        setShowSuccess(true)
+        
+        // Clear sessionStorage after upload attempt
+        console.log('Upload complete - clearing sessionStorage')
+        sessionStorage.removeItem('uploadModalState')
+        sessionStorage.removeItem('uploadModalShouldReopen')
+        
+        // Refresh data
+        if (onUploadComplete) {
+          onUploadComplete()
+        }
+
+        // If some failed, show warning after brief delay
+        if (failedUploads.length > 0) {
+          setTimeout(() => {
+            const failedList = failedUploads.map(f => `• ${f.fileName}`).join('\n')
+            alert(`${successCount} item(s) uploaded successfully.\n\nHowever, ${failedUploads.length} image(s) failed:\n${failedList}\n\nThese images may be in an incompatible format or corrupted. Please try:\n1. Taking a new photo\n2. Converting to a standard format (JPG/PNG)\n3. Using a different image`)
+            handleClose()
+          }, 1500)
+        } else {
+          // All succeeded - close modal after brief delay
+          setTimeout(() => {
+            handleClose()
+          }, 1500)
+        }
+      } else {
+        // All uploads failed
+        throw new Error('All image uploads failed. Please check the images and try again.')
+      }
     } catch (error) {
       console.error('Error uploading:', error)
-      alert(`Failed to upload items: ${error.message}`)
+      
+      // Provide helpful error message
+      let errorMessage = error.message
+      if (error.message.includes('blank images')) {
+        errorMessage = 'Unable to process the selected images. They appear to produce blank/corrupt results when compressed.\n\nPlease try:\n• Taking new photos with your camera\n• Using different images\n• Converting images to standard JPG/PNG format first'
+      }
+      
+      alert(`Failed to upload items: ${errorMessage}`)
     } finally {
       setUploading(false)
     }

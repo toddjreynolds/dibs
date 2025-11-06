@@ -26,7 +26,7 @@ export function Layout({ children, currentSection, onSectionChange }) {
 
   // Main nav items displayed in the navigation bar
   const mainNavSections = [
-    { id: 'browse', label: 'All Items', icon: 'grid_view' },
+    { id: 'browse', label: 'Up for Grabs', icon: 'grid_view' },
     { id: 'dibbed', label: 'My Dibs', icon: 'favorite' },
     { id: 'passed', label: 'My Passes', icon: 'delete' },
     { id: 'conflicts', label: 'My Bids', icon: 'loyalty' },

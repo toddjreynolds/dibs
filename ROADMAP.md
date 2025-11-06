@@ -3,10 +3,10 @@
 ## Enhancements
 
 ### Image Viewer
-- [ ] Click an item card to see the full picture in an image viewer
+- [x] Click an item card to see the full picture in an image viewer
 
 ### Item Management
-- [ ] Allow the person who added the item to be able to delete the item
+- [x] Allow the person who added the item to be able to delete the item
 
 ### User Roles
 - [ ] Allow for roles: Admin, Organizer, Participant

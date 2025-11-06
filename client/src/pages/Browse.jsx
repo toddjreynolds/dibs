@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../api/supabase'
 import { useAuthContext } from '../utils/AuthContext'
 import { ItemCard } from '../components/ItemCard'
@@ -15,6 +16,7 @@ export function Browse({ currentSection = 'browse' }) {
   const [userPoints, setUserPoints] = useState(100)
   const [loading, setLoading] = useState(true)
   const [showUploadModal, setShowUploadModal] = useState(false)
+  const [exitingItems, setExitingItems] = useState(new Set())
   
   // Check for expired items periodically
   useExpirationChecker()
@@ -54,10 +56,57 @@ export function Browse({ currentSection = 'browse' }) {
         interested_count: Math.max(0, item.interested_count + interestedDelta)
       }
     }))
+
+    // For "Up for Grabs!" section, delay the exit to show the new styling first
+    if (currentSection === 'browse') {
+      const shouldExit = !existingClaim || (existingClaim.status !== status)
+      if (shouldExit) {
+        // Check if this will result in a conflict after the update
+        const item = items.find(i => i.id === itemId)
+        const willBeInterested = status === 'interested'
+        const willBeDeclined = status === 'declined'
+        const hasConflict = item && item.interested_count > 1
+        
+        // Only exit if:
+        // 1. User is declining (passing)
+        // 2. User is dibbing a non-conflicted item
+        // Don't exit if user is dibbing a conflicted item (they need to place a bid first)
+        const shouldExitNow = willBeDeclined || (willBeInterested && !hasConflict)
+        
+        if (shouldExitNow) {
+          // Add to exiting items immediately to keep it in the filtered list
+          setExitingItems(prev => new Set(prev).add(itemId))
+          // Wait 600ms to show the styling, then remove from exiting to trigger exit animation
+          setTimeout(() => {
+            setExitingItems(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(itemId)
+              return newSet
+            })
+          }, 600)
+        }
+      }
+    }
+  }
+
+  const handleBidPlaced = (itemId) => {
+    // When a bid is placed on a conflicted item in "Up for Grabs!", trigger exit animation
+    if (currentSection === 'browse') {
+      setExitingItems(prev => new Set(prev).add(itemId))
+      setTimeout(() => {
+        setExitingItems(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(itemId)
+          return newSet
+        })
+      }, 600)
+    }
   }
 
   const loadData = async (showLoading = false) => {
     if (showLoading) setLoading(true)
+    // Clear exiting items when reloading data
+    setExitingItems(new Set())
     try {
       // Fetch all profiles for couple and bidding display
       const { data: profilesData, error: profilesError } = await supabase
@@ -200,7 +249,22 @@ export function Browse({ currentSection = 'browse' }) {
         // Items are already filtered to donated items
         return items
       default:
-        return items
+        // "Up for Grabs!" - show items that are:
+        // 1. Undecided (no claim)
+        // 2. Conflicted and no bid placed yet (dibbed + interested_count > 1 + no bid_amount)
+        // 3. Currently exiting (for animation)
+        return items.filter(item => {
+          const claim = userClaims[item.id]
+          if (exitingItems.has(item.id)) return true
+          if (!claim) return true
+          
+          // If user has dibbed and there's a conflict, keep showing until they place a bid
+          const isInterested = claim.status === 'interested'
+          const hasConflict = item.interested_count > 1
+          const hasBid = claim.bid_amount && claim.bid_amount > 0
+          
+          return isInterested && hasConflict && !hasBid
+        })
     }
   }
 
@@ -219,7 +283,7 @@ export function Browse({ currentSection = 'browse' }) {
       case 'donation':
         return 'Donate/Sell'
       default:
-        return 'All Items'
+        return 'Up for Grabs'
     }
   }
 
@@ -236,7 +300,7 @@ export function Browse({ currentSection = 'browse' }) {
       case 'donation':
         return 'No items available to donate or sell'
       default:
-        return 'No items yet. Upload the first one!'
+        return 'No new items! You\'ve made decisions on everything.'
     }
   }
 
@@ -275,23 +339,36 @@ export function Browse({ currentSection = 'browse' }) {
         </div>
       ) : (
         <div className={currentSection === 'donation' ? 'grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4' : 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'}>
-          {filteredItems.map(item => {
-            // Calculate available points for this specific item
-            const availablePoints = calculateAvailablePoints(userPoints, userClaimsArray, items, item.id)
-            
-            return (
-              <ItemCard
-                key={item.id}
-                item={item}
-                userClaim={userClaims[item.id]}
-                onClaimUpdate={optimisticClaimUpdate}
-                onDataReload={() => loadData(false)}
-                profiles={profiles}
-                userPoints={availablePoints}
-                currentSection={currentSection}
-              />
-            )
-          })}
+          <AnimatePresence mode="popLayout">
+            {filteredItems.map(item => {
+              // Calculate available points for this specific item
+              const availablePoints = calculateAvailablePoints(userPoints, userClaimsArray, items, item.id)
+              
+              return (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 1, scale: 1 }}
+                  exit={{ 
+                    opacity: 0, 
+                    scale: 0.8,
+                    transition: { duration: 0.3, ease: "easeOut" }
+                  }}
+                >
+                  <ItemCard
+                    item={item}
+                    userClaim={userClaims[item.id]}
+                    onClaimUpdate={optimisticClaimUpdate}
+                    onDataReload={() => loadData(false)}
+                    onBidPlaced={handleBidPlaced}
+                    profiles={profiles}
+                    userPoints={availablePoints}
+                    currentSection={currentSection}
+                  />
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
         </div>
       )}
     </div>

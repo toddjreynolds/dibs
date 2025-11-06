@@ -9,7 +9,7 @@ import { ImageViewerModal } from './ImageViewerModal'
 import { checkAndResolveItem } from '../utils/itemResolution'
 import { groupInterestedByCouples } from '../utils/coupleUtils'
 
-export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, profiles, userPoints, currentSection }) {
+export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, onBidPlaced, profiles, userPoints, currentSection }) {
   const { user } = useAuthContext()
   const [loading, setLoading] = useState(false)
   const [isBidModalOpen, setIsBidModalOpen] = useState(false)
@@ -69,6 +69,10 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, profile
   }
 
   const handleBidUpdate = async () => {
+    // Notify parent that a bid was placed (for exit animation in "Up for Grabs!")
+    if (onBidPlaced) {
+      onBidPlaced(item.id)
+    }
     // Reload data from server after bid is saved
     if (onDataReload) {
       await onDataReload()

@@ -4,6 +4,7 @@ import { supabase } from '../api/supabase'
 import { useAuthContext } from '../utils/AuthContext'
 import { ItemCard } from '../components/ItemCard'
 import { calculateAvailablePoints } from '../utils/pointsCalculation'
+import { groupInterestedByCouples } from '../utils/coupleUtils'
 
 export function MyChoices() {
   const { user } = useAuthContext()
@@ -222,7 +223,12 @@ export function MyChoices() {
                 </div>
 
                 {/* Conflict Warning */}
-                {interestedItems.some(item => item.interested_count > 1) && (
+                {interestedItems.some(item => {
+                  // Use groupInterestedByCouples to properly handle couples as single groups
+                  const interestedClaims = item.claims?.filter(c => c.status === 'interested') || []
+                  const groups = groupInterestedByCouples(interestedClaims, profiles)
+                  return groups.length > 1
+                }) && (
                   <div className="mt-4 rounded-lg p-4" style={{ backgroundColor: 'rgba(251, 86, 7, 0.1)', border: '1px solid rgba(251, 86, 7, 0.3)' }}>
                     <div className="flex items-start space-x-3">
                       <span className="material-symbols-rounded text-2xl" style={{ color: '#FB5607' }}>warning</span>

@@ -6,6 +6,7 @@ import { ItemCard } from '../components/ItemCard'
 import { UploadModal } from '../components/UploadModal'
 import { useExpirationChecker } from '../hooks/useExpirationChecker'
 import { calculateAvailablePoints } from '../utils/pointsCalculation'
+import { groupInterestedByCouples } from '../utils/coupleUtils'
 
 export function Browse({ currentSection = 'browse' }) {
   const { user } = useAuthContext()
@@ -65,7 +66,10 @@ export function Browse({ currentSection = 'browse' }) {
         const item = items.find(i => i.id === itemId)
         const willBeInterested = status === 'interested'
         const willBeDeclined = status === 'declined'
-        const hasConflict = item && item.interested_count > 1
+        // Use groupInterestedByCouples to properly handle couples as single groups
+        const interestedClaims = item?.claims?.filter(c => c.status === 'interested') || []
+        const groups = groupInterestedByCouples(interestedClaims, profiles)
+        const hasConflict = item && groups.length > 1
         
         // Only exit if:
         // 1. User is declining (passing)
@@ -239,7 +243,10 @@ export function Browse({ currentSection = 'browse' }) {
       case 'conflicts':
         return items.filter(item => {
           const userDibbed = userClaims[item.id]?.status === 'interested'
-          const hasConflict = item.interested_count > 1
+          // Use groupInterestedByCouples to properly handle couples as single groups
+          const interestedClaims = item.claims?.filter(c => c.status === 'interested') || []
+          const groups = groupInterestedByCouples(interestedClaims, profiles)
+          const hasConflict = groups.length > 1
           return userDibbed && hasConflict
         })
       case 'mystuff':
@@ -251,7 +258,7 @@ export function Browse({ currentSection = 'browse' }) {
       default:
         // "Up for Grabs!" - show items that are:
         // 1. Undecided (no claim)
-        // 2. Conflicted and no bid placed yet (dibbed + interested_count > 1 + no bid_amount)
+        // 2. Conflicted and no bid placed yet (dibbed + multiple groups interested + no bid_amount)
         // 3. Currently exiting (for animation)
         return items.filter(item => {
           const claim = userClaims[item.id]
@@ -260,7 +267,10 @@ export function Browse({ currentSection = 'browse' }) {
           
           // If user has dibbed and there's a conflict, keep showing until they place a bid
           const isInterested = claim.status === 'interested'
-          const hasConflict = item.interested_count > 1
+          // Use groupInterestedByCouples to properly handle couples as single groups
+          const interestedClaims = item.claims?.filter(c => c.status === 'interested') || []
+          const groups = groupInterestedByCouples(interestedClaims, profiles)
+          const hasConflict = groups.length > 1
           const hasBid = claim.bid_amount && claim.bid_amount > 0
           
           return isInterested && hasConflict && !hasBid

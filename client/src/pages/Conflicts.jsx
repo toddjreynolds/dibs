@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../api/supabase'
+import { groupInterestedByCouples } from '../utils/coupleUtils'
 
 export function Conflicts() {
   const [conflicts, setConflicts] = useState([])
+  const [profiles, setProfiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     totalItems: 0,
@@ -22,6 +24,14 @@ export function Conflicts() {
         return
       }
 
+      // Fetch all profiles for couple grouping
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+
+      if (profilesError) throw profilesError
+      setProfiles(profilesData || [])
+
       // Load all items with claims and profiles
       const { data: itemsData, error: itemsError } = await supabase
         .from('items')
@@ -29,6 +39,7 @@ export function Conflicts() {
           *,
           claims!claims_item_id_fkey(
             id,
+            user_id,
             status,
             claimed_at,
             profiles:user_id(first_name, id)
@@ -49,8 +60,11 @@ export function Conflicts() {
         // Check if current user is interested in this item
         const userIsInterested = interestedClaims.some(c => c.profiles.id === user.id)
         
-        // Only add to conflicts if user is interested AND there are multiple interested parties
-        if (userIsInterested && interestedClaims.length > 1) {
+        // Use groupInterestedByCouples to properly handle couples as single groups
+        const groups = groupInterestedByCouples(interestedClaims, profilesData || [])
+        
+        // Only add to conflicts if user is interested AND there are multiple interested groups
+        if (userIsInterested && groups.length > 1) {
           conflictedItems.push({
             ...item,
             interestedUsers: interestedClaims.map(c => ({

@@ -1,19 +1,23 @@
 import { useState } from 'react'
 import { supabase } from '../api/supabase'
 import { useAuthContext } from '../utils/AuthContext'
+import { useCanManageItem } from '../hooks/useRole'
 import { TimerBadge } from './TimerBadge'
 import { InterestedUsersBadges } from './InterestedUsersBadges'
 import { BiddingPanel } from './BiddingPanel'
 import { PlaceBidModal } from './PlaceBidModal'
 import { ImageViewerModal } from './ImageViewerModal'
+import { EditItemModal } from './EditItemModal'
 import { checkAndResolveItem } from '../utils/itemResolution'
 import { groupInterestedByCouples } from '../utils/coupleUtils'
 
 export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, onBidPlaced, profiles, userPoints, currentSection }) {
   const { user } = useAuthContext()
+  const canManage = useCanManageItem(item)
   const [loading, setLoading] = useState(false)
   const [isBidModalOpen, setIsBidModalOpen] = useState(false)
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   const handleClaim = async (status) => {
     if (loading) return
@@ -79,6 +83,28 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, onBidPl
     }
   }
 
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('items')
+        .delete()
+        .eq('id', item.id)
+
+      if (error) throw error
+      
+      if (onDataReload) {
+        await onDataReload()
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error)
+      alert('Failed to delete item. Please try again.')
+    }
+  }
+
   const currentBid = userClaim?.bid_amount || 0
   const availablePoints = (userPoints || 100) - currentBid
 
@@ -91,6 +117,32 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, onBidPl
 
   return (
     <div className="item-card" style={currentSection === 'donation' ? { paddingBottom: 0 } : undefined}>
+      {/* Organizer Controls */}
+      {canManage && currentSection !== 'donation' && (
+        <div className="absolute top-2 left-2 z-10 flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsEditModalOpen(true)
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 shadow-lg transition-colors"
+            title="Edit item"
+          >
+            <span className="material-symbols-rounded text-lg">edit</span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDelete()
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white rounded-full p-2 shadow-lg transition-colors"
+            title="Delete item"
+          >
+            <span className="material-symbols-rounded text-lg">delete</span>
+          </button>
+        </div>
+      )}
+
       {/* Image */}
       <div 
         className="item-image-container"
@@ -208,6 +260,16 @@ export function ItemCard({ item, userClaim, onClaimUpdate, onDataReload, onBidPl
           item={item}
           user={user}
           onDelete={onDataReload}
+        />
+      )}
+
+      {/* Edit Item Modal */}
+      {canManage && (
+        <EditItemModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          item={item}
+          onUpdateComplete={onDataReload}
         />
       )}
     </div>

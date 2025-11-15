@@ -3,7 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuthContext } from './utils/AuthContext'
 import { Login } from './pages/Login'
 import { Browse } from './pages/Browse'
+import { Organizer } from './pages/Organizer'
+import { Admin } from './pages/Admin'
 import { Layout } from './components/Layout'
+import { useIsOrganizer, useIsAdmin } from './hooks/useRole'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuthContext()
@@ -23,6 +26,26 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />
   }
 
+  return children
+}
+
+function OrganizerRoute({ children }) {
+  const isOrganizer = useIsOrganizer()
+  
+  if (!isOrganizer) {
+    return <Navigate to="/" replace />
+  }
+  
+  return children
+}
+
+function AdminRoute({ children }) {
+  const isAdmin = useIsAdmin()
+  
+  if (!isAdmin) {
+    return <Navigate to="/" replace />
+  }
+  
   return children
 }
 
@@ -61,6 +84,30 @@ function AppRoutes() {
       <Route
         path="/"
         element={<MainApp />}
+      />
+      <Route
+        path="/organizer"
+        element={
+          <ProtectedRoute>
+            <OrganizerRoute>
+              <Layout currentSection="organizer" onSectionChange={() => {}}>
+                <Organizer />
+              </Layout>
+            </OrganizerRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout currentSection="admin" onSectionChange={() => {}}>
+                <Admin />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
       />
     </Routes>
   )

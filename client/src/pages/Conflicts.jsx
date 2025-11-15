@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../api/supabase'
+import { useIsOrganizer } from '../hooks/useRole'
 import { groupInterestedByCouples } from '../utils/coupleUtils'
 
 export function Conflicts() {
+  const isOrganizer = useIsOrganizer()
   const [conflicts, setConflicts] = useState([])
   const [profiles, setProfiles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -41,6 +43,7 @@ export function Conflicts() {
             id,
             user_id,
             status,
+            bid_amount,
             claimed_at,
             profiles:user_id(first_name, id)
           )
@@ -71,6 +74,7 @@ export function Conflicts() {
               id: c.profiles.id,
               name: c.profiles.first_name,
               claimedAt: c.claimed_at,
+              bidAmount: c.bid_amount || 0,
             })),
           })
         }
@@ -204,7 +208,9 @@ export function Conflicts() {
                           People Interested ({item.interestedUsers.length})
                         </h3>
                         <div className="space-y-2">
-                          {item.interestedUsers.map((user, index) => (
+                          {item.interestedUsers
+                            .sort((a, b) => (b.bidAmount || 0) - (a.bidAmount || 0))
+                            .map((user, index) => (
                             <div
                               key={user.id}
                               className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
@@ -213,9 +219,16 @@ export function Conflicts() {
                                 <div className="w-8 h-8 bg-secondary text-white rounded-full flex items-center justify-center font-semibold">
                                   {user.name?.charAt(0) || '?'}
                                 </div>
-                                <span className="font-medium text-gray-800">
-                                  {user.name || 'Unknown User'}
-                                </span>
+                                <div>
+                                  <span className="font-medium text-gray-800">
+                                    {user.name || 'Unknown User'}
+                                  </span>
+                                  {isOrganizer && user.bidAmount > 0 && (
+                                    <div className="text-xs text-blue-600 font-medium">
+                                      Bid: {user.bidAmount} pts
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               <span className="text-xs text-gray-500">
                                 {new Date(user.claimedAt).toLocaleDateString()}
